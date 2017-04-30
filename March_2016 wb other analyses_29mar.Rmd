@@ -22,7 +22,7 @@ output: html_document
 # also loading the multiplot function, which will be super useful as we go on:
 
 #load the multiplot script that's sooo awesome in making panel graphs
-source('C:/Users/Thejasvi/Google Drive/stego web/web-construction FINAL round - raw data/analysis-FINALround/analysis-scripts/smoothworkflow/multiplot.R')
+source('E:/stego web/web-construction FINAL round - raw data/analysis-FINALround/analysis-scripts/smoothworkflow/multiplot.R')
 
 # pixpm --> is the scaling factor from pixels --> metres.
 
