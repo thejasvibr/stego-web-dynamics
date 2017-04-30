@@ -90,7 +90,7 @@ mgwd<-merge(mnwd,sdwd); mgwd<-mgwd[order(mgwd[,1],mgwd[,2]),]
 #
 pd <- position_dodge(width = 0.8)
 mgwd1<-subset(mgwd,day<10)
-mgplt<- ggplot(mgwd1,aes(x=as.factor(day),y=meanL,group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanL-sdL, ymax=meanL+sdL,shape=as.factor(mgwd1$groupsize),width=0.9),size=1.5,position=pd) + xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)  ; mgplt
+mgplt<- ggplot(mgwd1,aes(x=as.factor(day),y=meanL,group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanL-sdL, ymax=meanL+sdL,shape=as.factor(mgwd1$groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size") ; mgplt
 
 
 
