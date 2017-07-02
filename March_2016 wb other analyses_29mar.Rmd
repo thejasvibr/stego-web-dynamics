@@ -181,8 +181,13 @@ pcp1<-ggplot(dlenth,aes(x=day,y=percap/pixpm,color=as.factor(groupsize),group=as
 
 pcp3<-ggplot(dlenth,aes(x=day,y=percap/pixpm))+geom_point(size=4)+stat_smooth()+ylab('Per-capita silk investment (m)') + xlab('Days')+scale_x_discrete(breaks=c(1:9),labels=c(1:9))+theme(legend.position=c(0.75,0.85))+theme(legend.title=element_blank());pcp3
 
-pcp2<-ggplot(dlenth,aes(x=day,y=percap/pixpm,group=groupsize,colour=as.factor(groupsize)))+geom_point(size=4)+geom_smooth(linetype='solid',lwd=2,level=0.9)+ylab('Per-capita silk investment (m)') + xlab('Days')+scale_x_discrete(breaks=c(1:9),labels=c(1:9))+theme(legend.position=c(0.75,0.85))+theme(legend.title=element_blank());pcp2
 
+# Parameters from figure 3 - for consistency
+#mgplt<- ggplot(mgwd1,aes(x=as.factor(day),y=meanL,group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanL-sdL, ymax=meanL+sdL,shape=as.factor(mgwd1$groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15)) ; mgplt
+
+
+pcp2<-ggplot(dlenth,aes(x=as.factor(day),y=percap,group=groupsize,shape=as.factor(dlenth$groupsize),linetype=as.factor(dlenth$groupsize))) + geom_point(size=3)+geom_smooth(size=2,alpha=0.2)+ylab('Per-capita silk investment (m)') + xlab('Days')+scale_x_discrete(breaks=c(1:9),labels=c(1:9))+labs(shape = "Group Size (Raw data)")+ theme(text = element_text(size=20))+scale_linetype_manual(values=c('solid','dashed','dotdash', "dotted"),name="Group size (LOESS)", labels = c("1", "5", "10",'25') )+theme(legend.key.width = unit(2.5,"cm"));pcp2
+# +scale_linetype_discrete()
 
 # now to make the pcp2 plot to show the averaged per-capita silk with se:
 
@@ -199,11 +204,10 @@ mgpc<-merge(mnpc,sdpc); mgpc<-mgpc[order(mgpc[,1],mgpc[,2]),]
 #
 pd <- position_dodge(width = 0.8)
 mgpc1<-subset(mgpc,day<9)
-mgpltpc<- ggplot(mgpc1,aes(x=as.factor(day),y=meanPC,group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanPC-sdPC, ymax=meanPC+sdPC,shape=as.factor(mgpc1$groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Per-capita silk investment (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ; mgpltpc
+mgpltpc<- ggplot(mgpc1,aes(x=as.factor(day),y=meanPC,group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanPC-sdPC, ymax=meanPC+sdPC,shape=as.factor(mgpc1$groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Per-capita silk investment (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=20))  ; mgpltpc
 
 
-# Parameters from figure 3 - for consistency
-#mgplt<- ggplot(mgwd1,aes(x=as.factor(day),y=meanL,group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanL-sdL, ymax=meanL+sdL,shape=as.factor(mgwd1$groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15)) ; mgplt
+
 
 
 ```
