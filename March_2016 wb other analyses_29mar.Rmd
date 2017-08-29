@@ -79,6 +79,7 @@ p11mtrs<-p1mtrs+geom_point()+geom_line(linetype='solid',size=0.75)+ylab('Length 
 p2mtrs<-ggplot(wd,aes(day,Length/pixpm,color=as.factor(groupsize),group=groupsize))  + stat_summary(fun.y = median, fun.ymin = q025,fun.ymax =q975 ,size=1.5) +ylab('')+xlab('Days')+scale_x_discrete(breaks=c(1:10),labels=c(1:10));
 
 
+
 # figure 3 : plot with standard errors
 
 # now need to make a new plot with days on x , mean + se on y axis for each group size :
@@ -90,7 +91,9 @@ mgwd<-merge(mnwd,sdwd); mgwd<-mgwd[order(mgwd[,1],mgwd[,2]),]
 #
 pd <- position_dodge(width = 0.8)
 mgwd1<-subset(mgwd,day<10)
-mgplt<- ggplot(mgwd1,aes(x=as.factor(day),y=meanL,group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanL-sdL, ymax=meanL+sdL,shape=as.factor(mgwd1$groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15)) ; mgplt
+
+
+mgplt<- ggplot(mgwd1,aes(x=as.factor(day),y=meanL,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanL-sdL, ymax=meanL+sdL,width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ; mgplt
 
 
 
@@ -201,10 +204,11 @@ sdpc<-aggregate(percap ~ day*groupsize, data = dlenth, sd);colnames(sdpc)[3]<-'s
 # merged and ordered
 mgpc<-merge(mnpc,sdpc); mgpc<-mgpc[order(mgpc[,1],mgpc[,2]),]
 
-#
+#### figure  4 
 pd <- position_dodge(width = 0.8)
 mgpc1<-subset(mgpc,day<9)
-mgpltpc<- ggplot(mgpc1,aes(x=as.factor(day),y=meanPC,group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanPC-sdPC, ymax=meanPC+sdPC,shape=as.factor(mgpc1$groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Per-capita silk investment (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=20))  ; mgpltpc
+mgpltpc<- ggplot(mgpc1,aes(x=as.factor(day),y=meanPC,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanPC-sdPC, ymax=meanPC+sdPC,shape=as.factor(mgpc1$groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Per-capita silk investment (metres)')+scale_shape_manual(values=c(15,16,17,18))+geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=20))  ; mgpltpc
+
 
 
 
