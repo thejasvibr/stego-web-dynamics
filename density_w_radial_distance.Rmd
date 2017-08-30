@@ -1,0 +1,51 @@
+---
+title: "silk_density_with_radial_distance"
+author: "Thejasvi"
+date: "30 August 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## This script will present plots of how silk density varies with radial distance from the retreat
+## Let's just take a look at one such silk density heatmap below:
+
+```{r , echo=FALSE,}
+
+# use the previously existing dataset of smoothened grid values 
+
+sm_g64_path = 'D:\\stego web\\web-construction FINAL round - raw data\\analysis-FINALround\\analysis-results\\semifinal_16May\\64GridSmoothenedarray.RDS'
+
+d<-readRDS(sm_g64_path)
+
+# just take an example dataset
+d_eg <-d$'10E'
+d_eg1 <- d_eg[,,3] # take the 4th day 
+heatmap(d_eg1,Rowv=NA,Colv=NA)
+
+```
+
+## Now let's setup 3 radial arcs of one gridbox width from the bottomr right tip of the retreat:
+
+
+```{r make radial lines, echo=FALSE}
+
+tip_index = c(5,5) # for the large retreats the retreat was 2x2 inches in size
+bottom_tip = c(64,64)
+diagonal_dist = round( dist( rbind(tip_index,bottom_tip) ) )
+
+# we take silk density sections at 1/4th, 1/2 and 3/4th of this maximum possible diagonal distance
+
+arc_sections = round ( diagonal_dist * c(1/4,2/4,3/4)) # the radial distances at which the arcs 
+                                                       # will be measured at 
+
+xy_indxs = expand.grid(1:64,1:64)
+
+#calculate all grids that are within the arc_sections 
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
