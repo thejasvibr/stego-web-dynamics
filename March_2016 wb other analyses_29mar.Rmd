@@ -331,7 +331,7 @@ ps<-ps+1
 ####*Achtung:current data needs a little more cleaning*
 ```{r,echo=FALSE}
 # load the csv file with wts and ceph widths :
-wtadrs<-'C:/Users/Thejasvi/Google Drive/stego web/web-construction FINAL round - raw data/analysis-FINALround/analysis input-data/finalwtsnsizes.csv' # address of the weights and sizes csvfile
+wtadrs<-'D:/stego web/web-construction FINAL round - raw data/analysis-FINALround/analysis input-data/finalwtsnsizes.csv' # address of the weights and sizes csvfile
 wts<-read.csv(wtadrs)
 wts<-subset(wts,wts$groupsize!='NA') # cleaning up the data frame once more to avoid an extra 'NA' group ! 
 # before weights
@@ -795,6 +795,12 @@ bigDat01$groupsize<-factor(bigDat01$groupsize,levels=c('1','5','10','25'));
 m32<-subset(bigDat01,GridSize==32)
 m16<-subset(bigDat01,GridSize==16)
 m64<-subset(bigDat01,GridSize==64)
+
+save_folder = 'D:\\stego web\\web-construction FINAL round - raw data\\analysis-FINALround\\analysis-results\\feb_2016_Rmdfiles\\'
+
+save_filename = as.character('64grid_raw.Rda')
+final_path = paste(save_folder,save_filename,sep='')
+saveRDS(m64,file=final_path)
 
 
 
