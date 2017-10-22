@@ -1,13 +1,16 @@
 ---
-title: "silk_density_with_radial_distance"
+title: "Silk density with radial distance"
 author: "Thejasvi"
-date: "30 August 2017"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+now <- Sys.time()
 ```
+
+####  ** This R Markdown file was generated : `r now` **
 
 ## This script will present plots of how silk density varies with radial distance from the retreat
 ## Let's just take a look at one such silk density heatmap below:
@@ -21,31 +24,273 @@ sm_g64_path = 'D:\\stego web\\web-construction FINAL round - raw data\\analysis-
 d<-readRDS(sm_g64_path)
 
 # just take an example dataset
-d_eg <-d$'10E'
-d_eg1 <- d_eg[,,3] # take the 4th day 
-heatmap(d_eg1,Rowv=NA,Colv=NA)
+d_eg <-d$'25A'
+d_eg1 <- d_eg[,,7] # take the 4th day 
 
+# let's also take another example dataset from a different group size
+d_eg2 <- d$`10C`
+d_eg2 <- d_eg2[,,7]
+
+d_eg3 <-d$`5A`
+d_eg3 <- d_eg3[,,7]
+
+heatmap(d_eg1,Rowv=NA,Colv=NA,main='25 spider web,day 7')
+heatmap(d_eg2,Rowv=NA,Colv=NA,main='10 spider web, day 7')
+heatmap(d_eg3,Rowv=NA,Colv=NA,main='5 spider web, day 7')
 ```
 
-## Now let's setup 3 radial arcs of one gridbox width from the bottomr right tip of the retreat:
-
+## We decide to choose 3 arcs that fall within 0.25, 0.5 and 0.75 of the longest diagonal between the center of the retreat and the bottom right tip of the frame. This is where the 3 arcs will be placed in relation to the frame. 
 
 ```{r make radial lines, echo=FALSE}
-
-tip_index = c(5,5) # for the large retreats the retreat was 2x2 inches in size
-bottom_tip = c(64,64)
+tip_index = c(62,3) # for the large retreats the retreat was 2x2 inches in size
+bottom_tip = c(1,64)
 diagonal_dist = round( dist( rbind(tip_index,bottom_tip) ) )
 
 # we take silk density sections at 1/4th, 1/2 and 3/4th of this maximum possible diagonal distance
 
 arc_sections = round ( diagonal_dist * c(1/4,2/4,3/4)) # the radial distances at which the arcs 
                                                        # will be measured at 
+get_dist2tip <- function(tip,grid_index)
+  {
+  tip2grid_dist = dist(rbind(tip,grid_index))
+  return(tip2grid_dist)
+  }
 
-xy_indxs = expand.grid(1:64,1:64)
+get_grids_inrange<- function(tip_index,req_rad_dist)
+  {
+  
+  xy_indxs = expand.grid(1:64,1:64)
+  
+  xy_indxs$dist2tip = round(apply(xy_indxs,1,get_dist2tip,tip_index))
 
-#calculate all grids that are within the arc_sections 
+  grids_inrange = subset(xy_indxs,xy_indxs$dist2tip==round(req_rad_dist) )
+  
+  return(grids_inrange)
+}
 
+
+rad_inds = list()
+i = 1
+for (each_raddist in arc_sections)
+  {
+  rad_inds[[i]] = get_grids_inrange(tip_index,each_raddist)
+  i = i+1
+  }
+
+test_mat = matrix(nrow=nrow(d_eg1),ncol=ncol(d_eg1),data=0.5)
+
+test_mat_range = d_eg1
+test2_mat_range = d_eg2
+
+for (grids_inrange in rad_inds)
+{
+
+  for ( each_ind in seq(1,nrow(grids_inrange)) )
+    {
+    ij = as.matrix(grids_inrange[each_ind,])
+    test_mat_range[ij[1],ij[2]] = 170
+    test2_mat_range[ij[1],ij[2]] = 170
+    }
+}
+
+test_mat_range[tip_index[1],tip_index[2]]=0.5
+test2_mat_range[tip_index[1],tip_index[2]]= 0.5
+heatmap(test_mat_range,Rowv=NA,Colv=NA,main='Radial arc locations,25 spiders')
+heatmap(test2_mat_range,Rowv=NA,Colv=NA,main='Radial arc locations, 10 spiders')
+```
+
+## At this point it's important to give a word of caution that the arc method makes sense only if the grids that lie on the arc have silk. If we calculate silk density on an arc where it's mostly empty, it'll give misleading results. We will need to calculate the average silk densities using only those grids with silk in them !! 
+
+## * added note (2017-09-06): please ignore above point. Our intention here is to show how the silk density reduces with distance. It is not necessary to perform this extra accounting because the absence of silk is exactly what we want to capture*
+
+## Now that we know we're getting the arcs properly, let's now sum up the silk density in the grids and divide by the number of grids to get an estimate of silk density at various radial distances
+
+
+
+```{r calculate average density, echo=FALSE}
+
+calc_avg_silkdensity<-function(grid_mat,grids_inrange)
+  {
+  # calculates average silk density by summing the length of silk in all grids that are within the radial distance and dividing it by the number of grids
+  #
+  
+  silk_cumsum = 0
+  num_grids = nrow(grids_inrange)
+  
+  for ( each_grid in seq(1, num_grids) )
+    {
+    ij = as.matrix( grids_inrange[each_grid,] ) 
+    
+    silk_length = grid_mat[ ij[1], ij[2] ]
+    
+    if (silk_length > 0)
+      {
+      silk_cumsum = silk_cumsum + silk_length
+       
+      }
+    
+    }
+  
+  avg_silkdensity = silk_cumsum / num_grids
+  
+  return(avg_silkdensity)
+  
+  }
+
+multip_calc_silkdens<- function(grid_mat,gds_inrange_list)
+{
+  silkdensities = matrix(nrow=1,ncol=length(gds_inrange_list),data=NA)
+  
+  k = 1 
+  for (each_range in seq(1,length(gds_inrange_list) ) )
+  {
+    each_range = gds_inrange_list[[k]]
+    silkdensities[k] = calc_avg_silkdensity(grid_mat,each_range)
+    
+    k = k+1
+    
+  }
+  
+return(silkdensities)
+  
+}
+
+g25_silkdens = multip_calc_silkdens(d_eg1,rad_inds)
+g10_silkdens = multip_calc_silkdens(d_eg2,rad_inds)
+g5_silkdens = multip_calc_silkdens(d_eg3,rad_inds)
+
+g25 <- data.frame(arc_sections,density= t(g25_silkdens),gsize= rep(25,length(arc_sections)))
+g10 <- data.frame(arc_sections,density= t(g10_silkdens),gsize=rep(10,length(arc_sections)))
+g5 <- data.frame(arc_sections,density = t(g5_silkdens),gsize=rep(5,length(arc_sections)))
+
+density_df = rbind(g25,g10,g5)
+
+plotdens <- ggplot(data=density_df,aes(x=arc_sections/diagonal_dist,y=density,group=as.factor(density_df$gsize) ) ) + geom_point(col=as.factor(density_df$gsize),cex=3)+xlim(0,1) +ylim(0,150) + geom_line() + xlab('Radial distance from retreat centre, normalised to maximum possible radial distance') +ylab('Silk density, arbit. units') + ggtitle('Example plot, with 1 replicate per group size') + scale_fill_manual(name="Groupsizes",values=cols)
+  
+plotdens
+```
+
+## Having seen the pattern for one replicate across group sizes , let us now do the calculation for multiple replicates
+
+```{r perform multi replicate silk density calcs, echo=FALSE}
+library(reshape2)
+
+# let's take day 5 for all of the measurements across group sizes 
+
+day_num = 5 
+
+choose_oneday <- function(stacked_mats,layer_number)
+  {
+  # function which selects out one particular day/ slice of a set of stacked 2d matrices
+  # stacked_mats : 3d matrix w M x N x Numlayers dimensions
+  # layer_number : integer. the layer number to be chosen (1 : Numlayers)
+  
+  # Output:
+  # oneday_mat : mxnx1 matrix.
+  
+  oneday_mat <- stacked_mats[,,layer_number]
+  return(oneday_mat)
+  }
+
+oneday_webs <- lapply(d,choose_oneday,day_num) # all spider webs  at day 5
+
+# and now let's run through the calc_silk_dens through all of the spider webs :
+oneday_silkdens <- lapply(oneday_webs,multip_calc_silkdens,rad_inds)
+
+# and now put all of this information together
+oneday_webnames <- names(oneday_silkdens)
+# thanks to  https://stackoverflow.com/questions/14543627/extracting-numbers-from-vectors-of-strings
+group_sizes <- as.numeric(gsub("([0-9]+).*$", "\\1", oneday_webnames))
+
+label_columns <- data.frame(group_sizes,oneday_webnames)
+label_columns[,1] <- as.numeric(label_columns[,1] )
+
+all_silkdens <- as.numeric( do.call(rbind,oneday_silkdens))
+mat_all_silkdens <- matrix(ncol=3,data=all_silkdens)
+
+d_silkdens <- cbind(label_columns,mat_all_silkdens)
+colnames(d_silkdens)<- c('group_sizes','webnames','0.25','0.5','0.75')
+
+# the long version of the dataset :
+d_silkdens_ft <- melt(d_silkdens,id=c('webnames','group_sizes') ,variable.name='radial_dist',value.name = 'silkdens')
+
+p_dodge <- position_dodge(width=0.25) 
+
+
+silkdens_plot <- ggplot(d_silkdens_ft,aes(x=radial_dist,y=silkdens,group=as.factor(group_sizes)))+ geom_line(aes(x=radial_dist,y=silkdens,col=as.factor(group_sizes),group=webnames),lwd=1.)+
+geom_point(aes( col=as.factor(group_sizes), shape=as.factor(group_sizes) ),cex=3) + ggtitle('Silk density with radial distance across group sizes') + ylab('Average silk density per grid, arbit units') + xlab ('Radial distance, ref maximum possible radial distance')
+silkdens_plot
 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Here it's important to note that it's the simple mean that is being calculated : 
+##  cumulative silk length/ number of grids - and this obviously means that if the arc passes through an empty patch - it will lead to the lowering of the average value. 
+
+##  **This is okay for our purpose because it shows the overal trend of how silk is distributed across a radial gradient.!!! ** 
+
+### *Things to do : 1) make data symbols match those of previous plots 2) add proper length units to y axis 3) remove title 4) make the legend look decent*
+
+
+```{r convert to metres per grid, echo=FALSE}
+
+# make the silk density measurements from pixels per grid to 
+# metres per 1/64th grid
+
+pixpm<-1536/.6096     # number of pixels per m 
+metresfrompix <- 1/pixpm
+
+
+
+dens_inm <- c('0.25_mpergrid','0.5_mpergrid','0.75_mpergrid')
+i = 1 
+colinds  = seq(3,5)
+
+for (colnums in colinds )
+{
+  density_au <- d_silkdens[,colnums]
+  one_by_metres <- (density_au*metresfrompix)
+  d_silkdens[,max(colinds)+i] <- one_by_metres
+
+  i = i + 1 
+}
+
+names(d_silkdens)[6:8]<-dens_inm
+```
+
+
+```{r calculate mean and se,echo=FALSE}
+d_mpergrid <- d_silkdens[,c(1,2,6:8)]
+
+silkdens_means <- matrix(nrow=4,ncol=3,data=NA)
+silkdens_se <- matrix(nrow=4,ncol=3,data=NA)
+
+d_mpergrid$group_sizes <- factor(d_mpergrid$group_sizes ,levels=c('1','5','10','25'))
+
+# standard error of mean from
+#https://www.r-bloggers.com/standard-deviation-vs-standard-error/
+sem <-function(X) { sd(X)/sqrt((length(unlist(X)))) }
+
+i = 1 
+for (each_raddist in  seq(3,5))
+{
+ mean_dens <-  by(d_mpergrid[,each_raddist],d_mpergrid$group_sizes,mean,simplify = TRUE)
+ se_dens <-   by(d_mpergrid[,each_raddist],d_mpergrid$group_sizes,sem,simplify = TRUE)
+ 
+ silkdens_means[,i] <- matrix(mean_dens)
+ silkdens_se[,i] <- matrix(se_dens)
+ i = i + 1 
+   
+}
+dens_colnames <- c('0.25','0.5','0.75')
+dens_rownames <- c('1','5','10','25')
+
+colnames(silkdens_means) <- paste(dens_colnames,'_means',sep='')
+colnames(silkdens_se) <- paste(dens_colnames,'_se',sep='')
+
+rownames(silkdens_means)<- dens_rownames
+rownames(silkdens_se)<- dens_rownames
+
+silkdens_meanse <- cbind(silkdens_means,silkdens_se)
+
+```
+
