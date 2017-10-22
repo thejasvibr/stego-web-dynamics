@@ -275,6 +275,7 @@ for (each_raddist in  seq(3,5))
 {
  mean_dens <-  by(d_mpergrid[,each_raddist],d_mpergrid$group_sizes,mean,simplify = TRUE)
  se_dens <-   by(d_mpergrid[,each_raddist],d_mpergrid$group_sizes,sem,simplify = TRUE)
+ sample_size <- by(d_mpergrid[,each_raddist],d_mpergrid$group_sizes,length,simplify = TRUE)
  
  silkdens_means[,i] <- matrix(mean_dens)
  silkdens_se[,i] <- matrix(se_dens)
@@ -290,7 +291,16 @@ colnames(silkdens_se) <- paste(dens_colnames,'_se',sep='')
 rownames(silkdens_means)<- dens_rownames
 rownames(silkdens_se)<- dens_rownames
 
-silkdens_meanse <- cbind(silkdens_means,silkdens_se)
+silkdens_mean_se <- as.data.frame( cbind(silkdens_means,silkdens_se))
+silkdens_mean_se$unit <- rep('metrespergrid',4)
+silkdens_mean_se$samplesize <- matrix(sample_size)
+
+dest_folder = 'D:\\stego web\\web-construction FINAL round - raw data\\analysis-FINALround\\analysis-results\\feb_2016_Rmdfiles\\'
+
+dest_file = 'silkdensity_w_radialdistance.csv'
+fin_path <- paste(dest_folder,dest_file,sep='')
+
+write.csv(silkdens_mean_se,fin_path)
 
 ```
 
