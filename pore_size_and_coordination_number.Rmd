@@ -1,0 +1,135 @@
+---
+title: "Pore size and Coordination number"
+author: "Thejasvi Beleyur"
+date: "2020-03-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Pore size and Coordination number
+This notebook will visualise image analysis data from the Murthy lab. Saurabh looked at the pore sizes and coordination numbers of the stego webs across group size and time. To ensure the plots in the paper look the same - I will be re-plotting the data in ggplot2, and try to  perform the same nparLD analyses
+on the data as I did for the previous data I extracted (total silk length , density). 
+
+### Visualising the data
+```{r loading data}
+library(readxl)
+library(ggplot2)
+
+data_file <- file.path('pore_size_and_coordination_number_data','Results.xlsx')
+
+# each web's mean pore size + coordination number data is saved as a separate sheet
+sheet_names <- excel_sheets(data_file)
+sheet_names
+
+# load one example dataset and create a plot of the pore size (PS) and coordination number (CN)
+for(example_sheet in sheet_names)
+{
+example_sheet
+eg_data <- read_excel(data_file, sheet=example_sheet)
+
+# plot raw data for Coordination number
+cn_days<-ggplot(eg_data, aes(Days, CN) )+geom_point()+geom_line() +ylab('Coordination number') + xlab('Days') + ggtitle(sprintf('raw plot for %s',example_sheet))+ylim(0,10)
+print(cn_days)
+
+poresize_days<-ggplot(eg_data, aes(Days, Pores) )+geom_point()+geom_line() +ylab('Pore size') + xlab('Days') + ggtitle(sprintf('raw plot for %s',example_sheet))+ylim(0,2000)
+print(poresize_days)
+
+
+}
+
+```
+### 2020-03-08: Something odd with 1C:
+I just noticed that there's something a bit odd with 1C's first and last coordination values. Both the first and last values are 1. I'm guessing a coordination number of 1 means that there's no strings crossing -- or that there's 2 of them at a junction. Either way the value of 1 is odd/unlikely because the remaining values are at ~2.5, and then on the last day, the coordination number drops to 1. The drop implies a sudden drastic change in structure - which is not seen in the images. I'm guessing this  is a typo or an issue with the noisy  image interacting with the code.  Have written to Saurabh. If the images aren't clear, the data points could either be removed or corrected. Am waiting for a clarification - until then , however, I'm still going to get the code ready. 
+
+
+### Combining all web data into one dataframe
+
+```{r combining data}
+
+all_web_data <- data.frame()
+
+for(sheet in sheet_names)
+{
+sheet
+group_size <- as.numeric(substr(sheet, 1, nchar(sheet)-1))
+
+one_web_data <- read_excel(data_file, sheet=sheet)
+one_web_data$group_size <- group_size
+one_web_data$web_id <- sheet
+all_web_data <- rbind(all_web_data,one_web_data)
+}
+
+
+
+```
+
+### Plotting the long format dataset
+
+```{r plotting the combined dataset}
+pd <- position_dodge(width = 0.8)
+poresize_days<-ggplot(all_web_data, aes(x=as.factor(Days), y=Pores, shape=as.factor(group_size), group=web_id)) + geom_point(position=pd)+geom_line(linetype='solid', size=0.75, position=pd) +ylab('Pore size') + xlab('Days')  
+poresize_days
+
+
+```
+
+
+```{r making same format}
+# pore size which mimics layout of Figure 3 in manuscript ( length of silk vs days acros groupsizes)
+
+# now need to make a new plot with days on x , mean + se on y axis for each group size :
+poresize_mean <- aggregate(Pores ~ Days*group_size, data = all_web_data, mean, na.action=na.omit); 
+colnames(poresize_mean)[3] <- 'mean_poresize'
+poresize_sd <-aggregate(Pores ~ Days*group_size, data = all_web_data, sd, na.action=na.omit);
+colnames(poresize_sd)[3] <- 'sd_poresize'
+
+poresize_mean_sd<-merge(poresize_mean,poresize_sd); 
+poresize_mean_sd<-poresize_mean_sd[order(poresize_mean_sd[,1],poresize_mean_sd[,2]),]
+
+#
+pd <- position_dodge(width = 0.8)
+poresize_data<-subset(poresize_mean_sd,Days<8)
+
+
+mgplt<- ggplot(poresize_data,aes(x=as.factor(Days),
+                                 y=mean_poresize,
+                                 shape=as.factor(group_size),
+                                 group=as.factor(group_size)))+geom_pointrange(aes(ymin=mean_poresize-sd_poresize, ymax=mean_poresize+sd_poresize,width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Pore size (a.u.)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15));
+mgplt
+
+
+
+```
+
+```{r plotting coordination number}
+# now need to make a new plot with days on x , mean + se on y axis for each group size :
+coodnum_mean <- aggregate(CN ~ Days*group_size, data = all_web_data, mean, na.action=na.omit); 
+colnames(coodnum_mean)[3] <- 'mean_coodnum'
+coodnum_sd <-aggregate(CN ~ Days*group_size, data = all_web_data, sd, na.action=na.omit);
+colnames(coodnum_sd)[3] <- 'sd_coodnum'
+
+coodnum_mean_sd<-merge(coodnum_mean,coodnum_sd); 
+coodnum_mean_sd<-coodnum_mean_sd[order(coodnum_mean_sd[,1],coodnum_mean_sd[,2]),]
+
+#
+coodnum_data<-subset(coodnum_mean_sd,Days<8)
+
+
+mgplt2<- ggplot(coodnum_data,aes(x=as.factor(Days),
+                                 y=mean_coodnum,
+                                 shape=as.factor(group_size),
+                                 group=as.factor(group_size)))+geom_pointrange(aes(ymin=mean_coodnum-sd_coodnum, ymax=mean_coodnum+sd_coodnum,width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Coordination nummber') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))+ylim(1,4);
+mgplt2
+
+
+
+```
+
+
+```{r run_time, echo=FALSE}
+print(sprintf('This notebook was last run on: %s' ,Sys.time()))
+```
+
