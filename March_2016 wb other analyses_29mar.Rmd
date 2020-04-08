@@ -18,17 +18,17 @@ output: html_document
 
 ```{r, echo=FALSE,cache=TRUE}
 #dorig<-read.csv('C:/Users/Thejasvi/Google Drive/stego web/web-construction FINAL round - raw data/analysis-FINALround/analysis input-data/semifinal16thmay/skeletondata.csv')
-
+setwd('./')
 # also loading the multiplot function, which will be super useful as we go on:
 
 #load the multiplot script that's sooo awesome in making panel graphs
-source('D:/stego web/web-construction FINAL round - raw data/analysis-FINALround/analysis-scripts/smoothworkflow/multiplot.R')
+source('../../analysis-scripts/smoothworkflow/multiplot.R')
 
 # pixpm --> is the scaling factor from pixels --> metres.
 
 # common address:
 
-comad<-'D:/stego web/web-construction FINAL round - raw data/analysis-FINALround/analysis-results/semifinal_16May/'
+comad<-'../semifinal_16May/'
 
 
 ps=1;

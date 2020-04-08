@@ -17,7 +17,8 @@ on the data as I did for the previous data I extracted (total silk length , dens
 ```{r loading data}
 library(readxl)
 library(ggplot2)
-library(hash) # R library which provides dictionary type objects
+library(stringr)
+library(R.matlab)
 data_file <- file.path('pore_size_and_coordination_number_data','Results.xlsx')
 
 # each web's mean pore size + coordination number data is saved as a separate sheet
@@ -194,8 +195,37 @@ mgplt2
 #### Loading data from individual .mat files:
 The results within each web image subfolder seem to be in the .mat files. I now have to figure out how to get the data from the .mat file into an R compatible. There seems to be a couple of options: 1) [R.matlab](https://www.rdocumentation.org/packages/R.matlab/versions/3.6.2/topics/readMat) or [rmatio](https://www.rdocumentation.org/packages/rmatio/versions/0.14.0/topics/read.mat). It seems like R.matlab is the more mature one so I'll use R.matlab!
 
+```{r loading .mat files}
+all_files_in_folder = list.files('ImagesWithResults/', recursive = TRUE, include.dirs = TRUE)
+
+mat_files <- list()
+for (each_filepath in all_files_in_folder){
+  
+  if (str_detect(each_filepath, '.mat')){
+    mat_files <- append(mat_files, each_filepath)
+  }
+  
+}
 
 
+```
+
+### Trying to decipher the structure of one of the .mat files
+
+```{r opening a .mat file}
+
+full_filepath = file.path('ImagesWithResults', mat_files[2])
+# print the path of the .mat file being used here
+mat_files[2]
+d <- readMat(full_filepath) # read the .mat file 
+#str(d)
+
+d$CN
+
+d$imgRegProps
+
+d$centroids
+```
 
 
 ```{r run_time, echo=FALSE}

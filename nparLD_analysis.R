@@ -19,7 +19,8 @@ dlord<-subset(dlord,day<6)
 
 library(nparLD)
 
-res<-nparLD(percap~day*groupsize,data=dlord,subject='colonyname',description=F )
+res<-nparLD(percap~day*groupsize,data=dlord,subject='colonyname',
+            description=F, group1.order=c(1,5,10,25))
 
 # also show that the trajectories of the groups are different across time & groupsize 
 

@@ -300,7 +300,7 @@ dest_folder = 'D:\\stego web\\web-construction FINAL round - raw data\\analysis-
 dest_file = 'silkdensity_w_radialdistance.csv'
 fin_path <- paste(dest_folder,dest_file,sep='')
 
-write.csv(silkdens_mean_se,fin_path)
+#write.csv(silkdens_mean_se,fin_path)
 
 ```
 
