@@ -17,7 +17,7 @@ on the data as I did for the previous data I extracted (total silk length , dens
 ```{r loading data}
 library(readxl)
 library(ggplot2)
-
+library(hash) # R library which provides dictionary type objects
 data_file <- file.path('pore_size_and_coordination_number_data','Results.xlsx')
 
 # each web's mean pore size + coordination number data is saved as a separate sheet
@@ -44,6 +44,46 @@ print(poresize_days)
 ### 2020-03-08: Something odd with 1C:
 I just noticed that there's something a bit odd with 1C's first and last coordination values. Both the first and last values are 1. I'm guessing a coordination number of 1 means that there's no strings crossing -- or that there's 2 of them at a junction. Either way the value of 1 is odd/unlikely because the remaining values are at ~2.5, and then on the last day, the coordination number drops to 1. The drop implies a sudden drastic change in structure - which is not seen in the images. I'm guessing this  is a typo or an issue with the noisy  image interacting with the code.  Have written to Saurabh. If the images aren't clear, the data points could either be removed or corrected. Am waiting for a clarification - until then , however, I'm still going to get the code ready. 
 
+### 2020-04-07: Updates and responses from Saurabh
+
+#### 1. Weird trapezoidal pattern in 1C (up, flat and then down back to starting value)
+I'd written to Saurabh about the weird data patterns in 1C, and he's replied just about  month ago now. It seems to be an issue with how the images were numbered. 
+
+*"The confusion in 1c is caused because of the wrong numbering of original images. The original images are attached in images.zip. You can see for 1c, the web is fully developed for image 1 and least for 91. I had changed the numbering (in reverse order). So the first image does not have any pore or closed polygon which means the pore area can not be calculated. The coordination number of 1, on the other hand, comes from the two segregated silk strands on the left and topside. Further, there are only 10 images so the 11 entry of coordination number 1 is an error. This error happened in renumbering the image. So, you can remove the 11th entry."*
+
+
+#### 2. Using the raw data instead of mean values
+I'd noticed that using the mean value per web per day basically meant that outliers had a particularly strong effect 
+on the trends. I'd asked Saurabh to send the original values to play around with. He has sent them in the folder titled *ImagesWithResults.zip* on 2020-03-09. The zipped folder has one subfolder for each web. Within this subfolder, there is a results file with a series of probe images with the centre of each cell plotted over it. 
+
+#### 3. Using a common 'probe size' across $\geq 5$ group sizes
+The previous dataset had used a small probe size for single spiders (125x125), and a medium probe size for 
+group sizes 5 & 10 (300x300) and a large probe size for 25 spiders (500x500). I then asked Saurabh to re-analyse
+the 25 spider group with a probe size of 300x300 pixels to avoid sampling biases. He has sent the results for 
+25 spider webs with 300x300 probe sizes too in the file *"Results.xlsx"* on 2020-03-15 11:09 CET. I've renamed this file to *"Saurabh_300x300_probe_area_groupsize_Results.xlsx"*. 
+
+
+```{r loading latest data from Results.xlsx}
+all_web_datafile <- 'Saurabh_300x300_probe_area_groupsize_Results.xlsx'
+sheet_names<-excel_sheets(all_web_datafile)
+
+web_data_300300 <- data.frame()
+for (each_sheet in sheet_names){
+  
+  df<-read_excel(all_web_datafile, sheet=each_sheet)
+  group_size <- as.numeric(substr(each_sheet, 1, nchar(each_sheet)-1))
+  df$group_size <- group_size
+  df$web_id <- each_sheet
+  web_data_300300 <- rbind(web_data_300300, df)
+  
+  
+}
+
+
+```
+
+
+
 
 ### Combining all web data into one dataframe
 
@@ -62,9 +102,31 @@ one_web_data$web_id <- sheet
 all_web_data <- rbind(all_web_data,one_web_data)
 }
 
-
-
 ```
+
+
+#### Are they actually the same dataset?
+It seems like the datapoints in the two xlsx are actually the same (except for the data in 1C), is this really so?
+
+```{r checking dataset similarity}
+
+sheet_data_is_the_same <- data.frame()
+for (sheet in sheet_names){
+  old_dataset <- subset(all_web_data, web_id==sheet)
+  new_dataset <- subset(web_data_300300, web_id==sheet)
+  dataset_the_same <- identical(old_dataset, new_dataset)
+  current_results<- data.frame(row.names=1)
+  current_results$dataset_the_same <- dataset_the_same
+  current_results$webid <- sheet
+  sheet_data_is_the_same <- rbind(sheet_data_is_the_same, current_results)
+}
+
+print(sheet_data_is_the_same)
+```
+
+#### 2020-04-08 : It seems like the two 'Results.xlsx' are basically the same, will need to hear back from Saurabh.
+
+
 
 ### Plotting the long format dataset
 
@@ -127,6 +189,13 @@ mgplt2
 
 
 ```
+
+
+#### Loading data from individual .mat files:
+The results within each web image subfolder seem to be in the .mat files. I now have to figure out how to get the data from the .mat file into an R compatible. There seems to be a couple of options: 1) [R.matlab](https://www.rdocumentation.org/packages/R.matlab/versions/3.6.2/topics/readMat) or [rmatio](https://www.rdocumentation.org/packages/rmatio/versions/0.14.0/topics/read.mat). It seems like R.matlab is the more mature one so I'll use R.matlab!
+
+
+
 
 
 ```{r run_time, echo=FALSE}
