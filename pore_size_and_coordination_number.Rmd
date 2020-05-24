@@ -191,6 +191,67 @@ mgplt2
 
 ```
 
+#### What remains to be done:
+
+* Perform the nparLD analysis on the pore size and coordination number values and see if they differ across group size
+* Do the results change a lot if you  use the mean values or the median values? (Ideally I'd use the median values, but 
+right now I realise it might take a bit more time to figure  out  that part!)
+
+
+### nparLD on the mean CN and pore-size
+There's some weird problem that's preventing me from going ahead. 
+
+```{r }
+
+porsize_data = all_web_data[,c('Pores', 'Days','web_id','group_size')]
+porsizedata_r <- subset(porsize_data,  Days<6)
+colnames(porsizedata_r) <- c('poresize','days','webid','groupsize')
+
+# 1C has a missing entry because there are polygons in the images. 
+# I'm replacing this to mean a pore size of 0 on day 1
+print(porsizedata_r[is.na(porsizedata_r$poresize),])
+
+if (sum(is.na(porsizedata_r$poresize))==1){
+  porsizedata_r[is.na(porsizedata_r$poresize),]$poresize <- 0
+}
+
+# order rows by the days column
+porsizedata<-porsizedata_r[order(porsizedata_r$days,-porsizedata_r$groupsize),]
+porsizedata$webidnum <- as.numeric(as.factor(porsizedata$webid))
+# save and run this part in R 2.15.3
+write.csv(porsizedata,'poresize_nparLD.csv') # this dataset is loaded and run by 'poresize_CN_nparLD.R'
+
+#### Now checkout the coordination number
+cn_data_r = all_web_data[,c('CN', 'Days','web_id','group_size')]
+colnames(cn_data_r) <- c('cn','days','webid','groupsize')
+cn_data <- subset(cn_data_r,  days<6)
+cn_data <-cn_data[order(porsizedata_r$days,-porsizedata_r$groupsize),]
+cn_data$webidnum <- as.numeric(as.factor(cn_data$webid))
+write.csv(cn_data, 'cn_nparLD.csv')
+```
+
+
+
+```{r loading}
+
+#### source('poresize_CN_nparLD.R') # - this must be done in an session running 
+
+# now load the nparLD data
+load('results_CNandPoresize_nparld.RData')
+
+print(res_cn)
+
+print(res_poresize)
+
+#last run times of the results
+format(res_poresize$lastrun, "%a %b %d %X %Y")
+format(res_cn$lastrun, "%a %b %d %X %Y")
+
+```
+
+
+
+
 
 #### Loading data from individual .mat files:
 The results within each web image subfolder seem to be in the .mat files. I now have to figure out how to get the data from the .mat file into an R compatible. There seems to be a couple of options: 1) [R.matlab](https://www.rdocumentation.org/packages/R.matlab/versions/3.6.2/topics/readMat) or [rmatio](https://www.rdocumentation.org/packages/rmatio/versions/0.14.0/topics/read.mat). It seems like R.matlab is the more mature one so I'll use R.matlab!
