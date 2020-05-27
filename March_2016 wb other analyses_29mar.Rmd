@@ -91,9 +91,20 @@ mgwd<-merge(mnwd,sdwd); mgwd<-mgwd[order(mgwd[,1],mgwd[,2]),]
 #
 pd <- position_dodge(width = 0.8)
 mgwd1<-subset(mgwd,day<10)
+mgwd7<-subset(mgwd,day<8)
 
 
 mgplt<- ggplot(mgwd1,aes(x=as.factor(day),y=meanL,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanL-sdL, ymax=meanL+sdL,width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ; mgplt
+ggsave('total_silk_length_all_10days.png')
+
+
+
+# final figures as of 2020-05 limited to 7 days
+
+mgplt7<- ggplot(mgwd7,aes(x=as.factor(day),y=meanL,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanL-sdL, ymax=meanL+sdL,width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ; mgplt7
+
+ggsave('total_silk_length_all_7days.png')
+
 
 
 
@@ -196,8 +207,6 @@ pcp2<-ggplot(dlenth,aes(x=as.factor(day),y=percap,group=groupsize,shape=as.facto
 
 # figure 4 : 
 
-
-
 # now need to make a new plot with days on x , mean + se on y axis for each group size :
 mnpc<-aggregate(percap ~ day*groupsize, data = dlenth, mean);colnames(mnpc)[3]<-'meanPC'
 sdpc<-aggregate(percap ~ day*groupsize, data = dlenth, sd);colnames(sdpc)[3]<-'sdPC'
@@ -208,10 +217,15 @@ mgpc<-merge(mnpc,sdpc); mgpc<-mgpc[order(mgpc[,1],mgpc[,2]),]
 pd <- position_dodge(width = 0.8)
 mgpc1<-subset(mgpc,day<9)
 mgpltpc<- ggplot(mgpc1,aes(x=as.factor(day),y=meanPC,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanPC-sdPC, ymax=meanPC+sdPC,shape=as.factor(mgpc1$groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Per-capita silk investment (metres)')+scale_shape_manual(values=c(15,16,17,18))+geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=20))  ; mgpltpc
+ggsave('per_capita_all_10days.png')
 
 
 
+### figure 4 -- within 7 days
+mgpc7<-subset(mgpc,day<8)
 
+mgpltp7<- ggplot(mgpc7,aes(x=as.factor(day),y=meanPC,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanPC-sdPC, ymax=meanPC+sdPC,shape=as.factor(mgpc7$groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Per-capita silk investment (metres)')+scale_shape_manual(values=c(15,16,17,18))+geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=20))  ; mgpltp7
+ggsave('per_capita_all_7days.png')
 
 
 ```
@@ -331,7 +345,7 @@ ps<-ps+1
 ####*Achtung:current data needs a little more cleaning*
 ```{r,echo=FALSE}
 # load the csv file with wts and ceph widths :
-wtadrs<-'D:/stego web/web-construction FINAL round - raw data/analysis-FINALround/analysis input-data/finalwtsnsizes.csv' # address of the weights and sizes csvfile
+wtadrs<-'../../analysis input-data/finalwtsnsizes.csv' # address of the weights and sizes csvfile
 wts<-read.csv(wtadrs)
 wts<-subset(wts,wts$groupsize!='NA') # cleaning up the data frame once more to avoid an extra 'NA' group ! 
 # before weights
