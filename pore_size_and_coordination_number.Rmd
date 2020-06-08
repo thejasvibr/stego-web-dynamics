@@ -251,7 +251,12 @@ format(res_cn$lastrun, "%a %b %d %X %Y")
 
 
 
-
+### Are the mean-based nparLD affected by outliers
+2020-06-08
+After D & H discussed the results, they suspect the Groupsize 1 may actually be contributing most of the 
+variation to the whole dataset, and thus contribute to the somewhat unexpected results. Either way, even before
+the results too I realised using the mean +/- sd wasn't the best way to move forward because I too suspected there'd be lots of outlier effects on the results. Anyway, now I'm going to load up the cell/polygon level data and 
+get the *median* stats for each web on each day. Here it goes. 
 
 #### Loading data from individual .mat files:
 The results within each web image subfolder seem to be in the .mat files. I now have to figure out how to get the data from the .mat file into an R compatible. There seems to be a couple of options: 1) [R.matlab](https://www.rdocumentation.org/packages/R.matlab/versions/3.6.2/topics/readMat) or [rmatio](https://www.rdocumentation.org/packages/rmatio/versions/0.14.0/topics/read.mat). It seems like R.matlab is the more mature one so I'll use R.matlab!
@@ -275,15 +280,31 @@ for (each_filepath in all_files_in_folder){
 
 ```{r opening a .mat file}
 
+# function which calculates median coordination number for a web's MAT file
+get_median_CN <- function(mat_data){
+                all_cns <- mat_file$CN
+                median_cn <- median(all_cns)
+                median_cn
+                  }
+get_median_poresize<-function(mat_data){
+              imgreg<-mat_data$imgRegProps
+              pore_size <- imgreg[1,,1]
+              poresize_flattened<- vector()
+              for (each in imgreg[1,,1]){
+                poresize_flattened <- c(each, poresize_flattened)
+              }
+              median_poresize <- median(poresize_flattened)
+              median_poresize
+              }
+
 full_filepath = file.path('ImagesWithResults', mat_files[2])
 # print the path of the .mat file being used here
 mat_files[2]
 d <- readMat(full_filepath) # read the .mat file 
 #str(d)
 
-d$CN
 
-d$imgRegProps
+imgreg <- d$imgRegProps
 
 d$centroids
 ```
