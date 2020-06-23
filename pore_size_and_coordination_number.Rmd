@@ -231,24 +231,10 @@ write.csv(cn_data, 'cn_nparLD.csv')
 ```
 
 
-
-```{r loading}
-
-#### source('poresize_CN_nparLD.R') # - this must be done in an session running 
-
-# now load the nparLD data
-load('results_CNandPoresize_nparld.RData')
-
-print(res_cn)
-
-print(res_poresize)
-
-#last run times of the results
-format(res_poresize$lastrun, "%a %b %d %X %Y")
-format(res_cn$lastrun, "%a %b %d %X %Y")
-
-```
-
+#### How to use Renv:
+Run ```source ~/.bash_profile``` to activate the ```Renv``` command. Type ```Renv``` . 
+To start an R session just type ```R``` and the chosen version should start. Within the R session 
+run the command ```source('poresize_CN_nparLD.R') ``` to get the nparLD results as run on R version 2.15.3
 
 
 ### Are the mean-based nparLD affected by outliers
@@ -262,51 +248,146 @@ get the *median* stats for each web on each day. Here it goes.
 The results within each web image subfolder seem to be in the .mat files. I now have to figure out how to get the data from the .mat file into an R compatible. There seems to be a couple of options: 1) [R.matlab](https://www.rdocumentation.org/packages/R.matlab/versions/3.6.2/topics/readMat) or [rmatio](https://www.rdocumentation.org/packages/rmatio/versions/0.14.0/topics/read.mat). It seems like R.matlab is the more mature one so I'll use R.matlab!
 
 ```{r loading .mat files}
-all_files_in_folder = list.files('ImagesWithResults/', recursive = TRUE, include.dirs = TRUE)
-
-mat_files <- list()
-for (each_filepath in all_files_in_folder){
-  
-  if (str_detect(each_filepath, '.mat')){
-    mat_files <- append(mat_files, each_filepath)
-  }
-  
+web_folders = list.files('ImagesWithResults/', include.dirs = TRUE)
+# function to get all MAT files in a folder
+get_all_MAT_files <- function(directory){
+    mat_files = list.files(directory,pattern='*.mat')
+    mat_files
 }
 
+read_MAT_file <- function(mat_file){
+  data<-readMat(mat_file)
+  data}
+
+# function which calculates median coordination number for a web's MAT file
+get_median_CN <- function(mat_data){
+                all_cns <- mat_data$CN
+                median_cn <- median(all_cns)
+                median_cn
+}
+
+
+flatten_and_median<-function(imgreg)
+      {
+    pore_size <- imgreg[1,,1]
+    poresize_flattened<- vector()
+    for (each in imgreg[1,,1]){
+      poresize_flattened <- c(each, poresize_flattened)
+    }
+    median_poresize <- median(poresize_flattened)
+    median_poresize
+      }
+
+get_median_poresize<-function(mat_data){
+              imgreg<-mat_data$imgRegProps
+              median_poresize<-tryCatch(flatten_and_median(imgreg),
+                                        error=function(imgreg){NA})
+              median_poresize
+                            }
+
+load_and_get_median_data <- function(mat_file)
+  {
+  mat_data<-read_MAT_file(mat_file)
+  median_CN <- get_median_CN(mat_data)
+  median_poresize <- get_median_poresize(mat_data)
+  median_data<-c(median_CN, median_poresize)
+  median_data
+  }
 
 ```
 
 ### Trying to decipher the structure of one of the .mat files
 
 ```{r opening a .mat file}
+remove_last_4_chars<-function(some_string){str_sub(some_string, 1, str_length(some_string)-4)}
 
-# function which calculates median coordination number for a web's MAT file
-get_median_CN <- function(mat_data){
-                all_cns <- mat_file$CN
-                median_cn <- median(all_cns)
-                median_cn
-                  }
-get_median_poresize<-function(mat_data){
-              imgreg<-mat_data$imgRegProps
-              pore_size <- imgreg[1,,1]
-              poresize_flattened<- vector()
-              for (each in imgreg[1,,1]){
-                poresize_flattened <- c(each, poresize_flattened)
-              }
-              median_poresize <- median(poresize_flattened)
-              median_poresize
-              }
+all_median_data <- c(NA, NA, NA, NA)
+for (each_web in web_folders){
+  source_folder = paste('ImagesWithResults/',each_web,'/Results/',sep='')
+  web_mat_files <- list.files(source_folder, pattern='*.mat')
+  for (each_mat in web_mat_files){
+    full_matfile_path = paste(source_folder,each_mat, sep='')
+    median_data <- load_and_get_median_data(full_matfile_path)
+    day_number <- as.numeric(remove_last_4_chars(each_mat))
+    all_median_data <- rbind(all_median_data, c(median_data, each_web, day_number))
+                                 }
+                                }
 
-full_filepath = file.path('ImagesWithResults', mat_files[2])
-# print the path of the .mat file being used here
-mat_files[2]
-d <- readMat(full_filepath) # read the .mat file 
-#str(d)
+median_df <- data.frame(all_median_data)
+colnames(median_df) <- c('median_CN','median_poresize','web_id','day')
+median_df <- median_df[2:nrow(median_df),]
+median_df$median_poresize <- as.numeric(median_df$median_poresize)
+median_df$median_CN <- as.numeric(median_df$median_CN)
+
+# save the median data to csv so that it can be loaded and run for the nparLD analysis
+median_df$group_size <- as.numeric(str_sub(median_df$web_id, 1, str_length(median_df$web_id)-1))
+
+# insert entry for day 1 of 1B - a web which didn't show any developement and thus have missing day1 entry
+# these NA's should actually be zeros. 
+day1_1B <- data.frame(median_CN=0, median_poresize=0, web_id='1B', day=1, group_size=1)
+median_df <- rbind(median_df, day1_1B)
+
+# 1C only showed a strand, and thus had a coordination number, but no poresize
+day1_row = which(median_df$web_id=='1C' & median_df$day==1)
+median_df[day1_row,]$median_poresize = 0
+
+write.csv(median_df, 'median_poresize_cn.csv')
+```
 
 
-imgreg <- d$imgRegProps
+### Analyses to be run with nparLD:
+```{r}
+# now load the nparLD data
+load('results_CNandPoresize_nparld.RData') # raw mean analysis
+load('results_CNandPoresize_woday1_nparld.RData') # without day 1 analysis
+load('results_CNandPoresize_wo1spider_nparld.RData') # without 1 spider analysis
+load('results_MEDIAN_CNandPoresize_nparld.RData') # median data analysis 
+```
+#### Raw mean data (till day5):
 
-d$centroids
+```{r}
+print('CN mean')
+print(res_cn$ANOVA.test)
+
+print('Poresize mean')
+print(res_poresize$ANOVA.test)
+
+```
+It can be seen that group size is significant, which really goes against the observations in the data. This could be 
+a result of 3 things : 1) the means are sensitive to outliers and thus create extra variation 2) spiders on their first
+day show more variable web building behaviour and thus create variation, 3) single spiders themselves in general add to the variation. 
+
+* mean analysis (a) : remove day 1 to see if all groups are indistinguishable
+```{r}
+print('CN mean, without day1')
+print(woday1_cn_results$ANOVA.test)
+
+print('Poresize mean, without day 1')
+print(woday1_poresize_results$ANOVA.test)
+
+```
+
+* mean analysis (b) : remove single spiders to see if all groups are indistinguishable 
+```{r}
+
+print('CN mean, without single spiders')
+print(wo1spider_res$ANOVA.test)
+
+print('Poresize mean, without single spiders')
+print(wo1spider_poresize_results$ANOVA.test)
+
+```
+
+* median analysis : just use the *median* measurements of each web on each day and check the overall results 
+```{r}
+
+print('CN Median')
+print(results_median_CN$ANOVA.test)
+
+print('Poresize Median')
+print(results_med_poresize$ANOVA.test)
+
+
 ```
 
 
