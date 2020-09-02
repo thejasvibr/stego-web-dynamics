@@ -370,8 +370,8 @@ summary {
 
 
 <p><em>This is one of three Rmd files accompanying the manuscript. The other files are ‘beleyur_et_al_topology_analyses.Rmd’ (analyses the coordination number and pore size data), ‘weight_loss_analysis.Rmd’ (analyses weight loss of individuals across colonies over the experiment)</em></p>
-<div id="you-are-reading-a-version-of-the-report-compiled-on-wed-sep-2-182624-2020" class="section level5">
-<h5>You are reading a version of the report compiled on Wed Sep 2 18:26:24 2020</h5>
+<div id="you-are-reading-a-version-of-the-report-compiled-on-thu-sep-3-003041-2020" class="section level5">
+<h5>You are reading a version of the report compiled on Thu Sep 3 00:30:41 2020</h5>
 <p>Spiders were kept in 4 group sizes (1,5,10,25) and allowed to build webs on a 2x2feet wire frame. Using a custom-modified version of Angioquant, a freely available MATLAB toolbox, I extracted skeletonised forms of these webs over multiple spatial resolutions over the period of the experiment.</p>
 </div>
 <div id="the-dataset-being-analysed-skeletondatacsv-has-the-following-column-headers" class="section level3">
@@ -484,6 +484,17 @@ print(overall_silk$ANOVA.test)</code></pre>
 ## groupsize     30.8828226 2.753718 1.592133e-18
 ## day           50.4293710 1.790491 1.542899e-20
 ## groupsize:day  0.8768285 3.836053 4.732244e-01</code></pre>
+</div>
+<div id="other-general-descriptive-statistics-in-the-paper" class="section level3">
+<h3>Other general descriptive statistics in the paper</h3>
+<div id="number-of-replicates-per-group-size" class="section level4">
+<h4>Number of replicates per group size</h4>
+<pre class="r"><code>wd1&lt;-subset(wd, day==1)
+table(wd1$groupsize)</code></pre>
+<pre><code>## 
+##  1  5 10 25 
+##  6  3  6  4</code></pre>
+</div>
 </div>
 <div id="the-r-packages-and-r-version-required-to-run-this-analysis" class="section level3">
 <h3>The R packages and R version required to run this analysis</h3>

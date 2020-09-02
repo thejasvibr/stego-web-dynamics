@@ -680,6 +680,24 @@ pctgrwd&lt;-numrewd/numwd
 # -- average weight of spiders b4 :
 mean(wts$b4wtmg,na.rm=T)</code></pre>
 <pre><code>## [1] 65.12074</code></pre>
+<div id="other-descriptive-data" class="section level3">
+<h3>Other descriptive data</h3>
+<div id="cephalothorax-widths" class="section level4">
+<h4>Cephalothorax widths</h4>
+<pre class="r"><code>cephalothorax_width = wts$cephwid
+mean_cephwid &lt;- mean(cephalothorax_width, na.rm=TRUE)
+std_cephwid &lt;- sd(cephalothorax_width, na.rm=TRUE)
+sample_size = length(cephalothorax_width) - length(sum(is.na(cephalothorax_width)))
+sprintf('Mean cephalothorax width +/- sd: %f +/- %f mm, N=%d', mean_cephwid, std_cephwid, sample_size)</code></pre>
+<pre><code>## [1] &quot;Mean cephalothorax width +/- sd: 2.344371 +/- 0.233910 mm, N=178&quot;</code></pre>
+<pre class="r"><code>mean_startwt &lt;- mean(wts$b4wt, na.rm=TRUE)
+std_startwt &lt;- sd(wts$b4wt, na.rm=TRUE)
+sample_size = length(wts$b4wt) - length(sum(is.na(wts$b4wt)))
+
+sprintf('Mean cephalothorax width +/- sd: %f +/- %f mg, N=%d', mean_startwt*1000, std_startwt*1000, sample_size)</code></pre>
+<pre><code>## [1] &quot;Mean cephalothorax width +/- sd: 65.120741 +/- 15.758637 mg, N=178&quot;</code></pre>
+</div>
+</div>
 
 
 

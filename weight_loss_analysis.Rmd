@@ -141,3 +141,26 @@ pctgrwd<-numrewd/numwd
 # -- average weight of spiders b4 :
 mean(wts$b4wtmg,na.rm=T)
 ```
+
+
+### Other descriptive data
+
+#### Cephalothorax widths
+
+```{r, echo=TRUE}
+cephalothorax_width = wts$cephwid
+mean_cephwid <- mean(cephalothorax_width, na.rm=TRUE)
+std_cephwid <- sd(cephalothorax_width, na.rm=TRUE)
+sample_size = length(cephalothorax_width) - length(sum(is.na(cephalothorax_width)))
+sprintf('Mean cephalothorax width +/- sd: %f +/- %f mm, N=%d', mean_cephwid, std_cephwid, sample_size)
+```
+
+
+```{r, echo=TRUE}
+mean_startwt <- mean(wts$b4wt, na.rm=TRUE)
+std_startwt <- sd(wts$b4wt, na.rm=TRUE)
+sample_size = length(wts$b4wt) - length(sum(is.na(wts$b4wt)))
+
+sprintf('Mean cephalothorax width +/- sd: %f +/- %f mg, N=%d', mean_startwt*1000, std_startwt*1000, sample_size)
+
+```

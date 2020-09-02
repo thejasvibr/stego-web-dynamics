@@ -285,6 +285,15 @@ print(overall_silk$ANOVA.test)
 
 ```
 
+### Other general descriptive statistics in the paper
+
+#### Number of replicates per group size
+
+```{r, echo=TRUE}
+wd1<-subset(wd, day==1)
+table(wd1$groupsize)
+```
+
 ### The R packages and R version required to run this analysis 
 
 ```{r}
