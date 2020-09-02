@@ -2,12 +2,14 @@
 
 # will study the effect of groupsize*day of the percapita data :
 
-comad2<-'C:/Users/Thejasvi/Google Drive/stego web/web-construction FINAL round - raw data/analysis-FINALround/analysis-results/feb_2016_Rmdfiles'
-# this will be done using the dlenth dataframe
+load('dlenth.Rdata')
+load('wd.Rdata')
 
-# run the command below if you're running this script indepedently
+part_wd<- subset(wd, day<6)
+part_wd <- part_wd[order(part_wd$day, -part_wd$groupsize),]
 
-#source(paste(comad2,'/typical_variable loader.R',sep=''))
+# remove all NA rows 
+dlenth <- dlenth[!is.na(dlenth['percap']),]
 
 # ordering the 'days'
 dlord<-dlenth[order(dlenth$day,-dlenth$groupsize),]
@@ -22,7 +24,24 @@ library(nparLD)
 res<-nparLD(percap~day*groupsize,data=dlord,subject='colonyname',
             description=F)
 
+save(res, file='percapita_nparld_results.Rdata')
+
+overall_silk<- nparLD(Lengthm~day*groupsize,data=part_wd,subject='colonyname',
+                      description=F)
+
+save(overall_silk, file='overallsilk_nparLD_results.Rdata')
+
+# Show the R package environment required to recreate this analysis
+
+ip <- as.data.frame(installed.packages()[,c(1,3:4)])
+rownames(ip) <- NULL
+ip <- ip[is.na(ip$Priority),1:2,drop=FALSE]
+
+print(ip, row.names=FALSE)
+
+## The R version used to run this analysis 
+print(R.version)
 # also show that the trajectories of the groups are different across time & groupsize 
 
-wdtil6<-subset(wd,day<7)
-res2<-nparLD(Lengthm~day*groupsize,data=wdtil6,subject='colonyname',description=F )
+#wdtil6<-subset(wd,day<7)
+#res2<-nparLD(Lengthm~day*groupsize,data=wdtil6,subject='colonyname',description=F )

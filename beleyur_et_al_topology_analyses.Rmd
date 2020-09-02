@@ -1,9 +1,13 @@
 ---
-title: "Pore size and Coordination number"
+title: "Pore size and Coordination number analysis for Beleyur et al 2020, *The web architecture, dynamics, and silk investment in the social spider, Stegodyphus sarasinorum*"
 author: "Thejasvi Beleyur"
 date: "2020-03-08"
 output: html_document
 ---
+
+*This is one of three Rmd files accompanying the manuscript. The other file is called 'beleyur_et_al_silk_analyses.Rmd' (analyses the silk length on the web and the per-capita silk investment.') and 'weight_loss_analysis.Rmd' (analyses weight loss of individuals across colonies over the experiment)*
+
+##### You are reading a version of the report compiled on `r date()`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -90,7 +94,7 @@ for (each_sheet in sheet_names){
 
 ```{r combining data}
 
-all_web_data <- data.frame()
+all_web_data_raw <- data.frame()
 
 for(sheet in sheet_names)
 {
@@ -100,7 +104,7 @@ group_size <- as.numeric(substr(sheet, 1, nchar(sheet)-1))
 one_web_data <- read_excel(data_file, sheet=sheet)
 one_web_data$group_size <- group_size
 one_web_data$web_id <- sheet
-all_web_data <- rbind(all_web_data,one_web_data)
+all_web_data_raw <- rbind(all_web_data_raw,one_web_data)
 }
 
 ```
@@ -113,7 +117,7 @@ It seems like the datapoints in the two xlsx are actually the same (except for t
 
 sheet_data_is_the_same <- data.frame()
 for (sheet in sheet_names){
-  old_dataset <- subset(all_web_data, web_id==sheet)
+  old_dataset <- subset(all_web_data_raw, web_id==sheet)
   new_dataset <- subset(web_data_300300, web_id==sheet)
   dataset_the_same <- identical(old_dataset, new_dataset)
   current_results<- data.frame(row.names=1)
@@ -128,6 +132,18 @@ print(sheet_data_is_the_same)
 #### 2020-04-08 : It seems like the two 'Results.xlsx' are basically the same, will need to hear back from Saurabh.
 
 
+### Removing the excess spider colonies
+Remove some of the colonies that slipped through in the last round of analysis 
+
+```{r}
+
+excess_spiders <- read.csv('excess_spiders.csv')
+colonies_to_remove <- subset(excess_spiders, excess_spiders_observed==TRUE)$colonyname
+#load function which removes all rows in the colonynames list/vector
+source('remove_colonies.R')
+all_web_data<- remove_colonies(all_web_data_raw, colonies_to_remove,'web_id')
+
+```
 
 ### Plotting the long format dataset
 
@@ -199,7 +215,6 @@ right now I realise it might take a bit more time to figure  out  that part!)
 
 
 ### nparLD on the mean CN and pore-size
-There's some weird problem that's preventing me from going ahead. 
 
 ```{r }
 
@@ -232,10 +247,19 @@ write.csv(cn_data, 'cn_nparLD.csv')
 
 
 #### How to use Renv:
+
+#### The 'interactive way'
 Run ```source ~/.bash_profile``` to activate the ```Renv``` command. Type ```Renv``` . 
 To start an R session just type ```R``` and the chosen version should start. Within the R session 
 run the command ```source('poresize_CN_nparLD.R') ``` to get the nparLD results as run on R version 2.15.3
 
+#### The 'automated way'
+
+```{r}
+# this activates Renv. Make sure the default R version is set to 2.15.3
+# this is a Linux specific way to do it 
+system('bash -c "source ~/.bash_profile"')
+```
 
 ### Are the mean-based nparLD affected by outliers
 2020-06-08
@@ -331,11 +355,22 @@ median_df <- rbind(median_df, day1_1B)
 day1_row = which(median_df$web_id=='1C' & median_df$day==1)
 median_df[day1_row,]$median_poresize = 0
 
+# remove the excess spider colonies here too
+median_df <- remove_colonies(median_df, colonies_to_remove, 'web_id')
+
 write.csv(median_df, 'median_poresize_cn.csv')
+```
+### Run the nparLD analysis using R version 2.15.3
+
+```{r}
+
+# call the script from the command line and generate the results 
+system('bash -c "Rscript poresize_CN_nparLD.R"')
+
 ```
 
 
-### Analyses to be run with nparLD:
+### Analyses outputs to be run with nparLD:
 ```{r}
 # now load the nparLD data
 load('results_CNandPoresize_nparld.RData') # raw mean analysis
@@ -397,19 +432,37 @@ med_plot<-ggplot(median_df,aes(x=day,y=median_CN,group=group_size,color=as.facto
 med_plot
 
 pd <- position_dodge(width = 0.8)
-
+median_df <- subset(median_df, day!=91)
+median_df$dayfactor <- factor(median_df$day, levels=c('1','2','3','4','5','6','7','8','9','10'))
 
 # median pore size plot with min and max
-mgplt<- ggplot(median_df,aes(x=as.factor(day),y=median_CN, shape=as.factor(group_size), group=as.factor(group_size))) +geom_pointrange(aes(ymin=min(median_CN), ymax=max(median_CN),width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ;
+mgplt<- ggplot(median_df,aes(x=dayfactor,y=median_CN, shape=as.factor(group_size), group=as.factor(group_size))) +geom_pointrange(aes(ymin=min(median_CN), ymax=max(median_CN),width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Median Coordination number') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ;
 mgplt
 
 
-mgplt2<- ggplot(median_df,aes(x=as.factor(day),y=median_poresize, shape=as.factor(group_size), group=as.factor(group_size))) +geom_pointrange(aes(ymin=min(median_poresize), ymax=max(median_poresize),width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ;
+mgplt2<- ggplot(median_df,aes(x=dayfactor,y=median_poresize, shape=as.factor(group_size), group=as.factor(group_size))) +geom_pointrange(aes(ymin=min(median_poresize), ymax=max(median_poresize),width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Median poresize') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ;
 mgplt2
 
 
 
 ```
+
+### The R packages and R version required to run this analysis 
+
+```{r}
+# code from 
+# https://www.r-bloggers.com/list-of-user-installed-r-packages-and-their-versions/
+
+ip <- as.data.frame(installed.packages()[,c(1,3:4)])
+rownames(ip) <- NULL
+ip <- ip[is.na(ip$Priority),1:2,drop=FALSE]
+print(ip, row.names=FALSE)
+
+## The R version used to run this analysis 
+print(R.version)
+```
+
+
 
 ```{r run_time, echo=FALSE}
 print(sprintf('This notebook was last run on: %s' ,Sys.time()))

@@ -1,5 +1,15 @@
-# script which looks into te weight loss stuf :
+---
+title: "Weight loss analysis for *The web architecture, dynamics, and silk investment in the social spider, Stegodyphus sarasinorum*"
+author: "Thejasvi"
+output:
+  html_document: default
+---
 
+*This is one of three Rmd files accompanying the manuscript. The other files are called 'beleyur_et_al_silk_analyses.Rmd' (analyses the silk length on the web and the per-capita silk investment.') and 'beleyur_et_al_topology_analyses.Rmd' (analyses the coordination number and pore size data)*
+
+This notebook analyses the weight loss of individuals across the experiment to explore how individuals lost weight as a result of dessication + silk investment with group size.
+
+```{r, echo=TRUE}
 wtadrs<-'../../analysis input-data/finalwtsnsizes.csv' # address of the weights and sizes csvfile
 wts_raw<-read.csv(wtadrs)
 
@@ -40,52 +50,55 @@ pstagemiss<-mssng/rws
 plot(wts$cephwid,wts$wtloss*1000,pch=20,col='red')
 cor.test(wts$cephwid,wts$wtloss,method='spearman')
 
-# however we need to be aware that each colony  was weighed after a different number of days
-# let's include this data and then take a look :
+```
 
-#partial correlation :
-source(paste(comad2,'/pcor.R',sep=''))
-P0<-pcor.test(wts$wtloss,wts$cephwid,wts$wtday,method='s')
+Now, let's build the models.
 
-P1<-pcor.test(wts$wtloss,wts$b4wt,wts$cephwid,method='s')
-
-# ITS BEST TO CONVERT THE WTLOSS INTO MG ...OTHERWISE IT'S A BIT CONFUSING TO INTERPRET!!
-
+```{r,echo=TRUE}
 library(lme4)
 
 # both of these results suggest that there's an influence of previous weight, and size on silk investment
 # maybe it's best to do some kind of mixed model to figure this out :
 
 M0<-lm(wtlossmg~b4wtmg+wtday+groupsize+cephwid,data=wts)
+summary(M0)
+```
+M0 suggests that groupsize makes a difference - but this is a very simple model 
 
-#M0 suggests that groupsize makes a difference - but this is a very simple model 
-
+```{r, echo=TRUE}
 ml0<-lmer(wtlossmg~b4wtmg+wtday+groupsize+cephwid+(1|colonyname),data=wts)
+summary(ml0)
 #I want to check if 'spider ID' itself has an effect on wt loss !!! 
-# now I've to create a mixup of two columns to assign each
+# now I've to created a combination of two columns to assign each spider a completely unique id 
+# across the experiment.
 wts$uniqid<-paste(wts$colonyname,wts$ID,sep='')
 
 ml1<-lmer(wtlossmg~b4wtmg+wtday+groupsize+cephwid+(1|colonyname)+(1|uniqid),data=wts)
+summary(ml1)
+```
 
-# This shows that there's no effect of colonyname or individual id as such 
-# on the amount of weight loss, but rather that smaller sized spiders tend
-# to invest more silk, and being in a good condition leads to more silk investment
-# let's test for the effect of batch - this might affect the fact that
+This shows that there's no effect of colonyname as such  on the amount of weight loss, but rather that smaller sized spiders tend  to invest more silk, and being in a good condition leads to more silk investment. There probably isn't enough sample size to actually estimate the variation caused by individuals - and so this analysis is inconclusive. 
+
+Let's test for the effect of batch - this might affect the fact that
 # different batches were run at different points of time.
+```{r, echo=TRUE}
 lastchar<-function(V){substr(V,nchar(V),nchar(V))}
 
 wts$batchid<-lastchar(as.character(wts$colonyname))
 
 ml0_2<-lmer(wtlossmg~b4wtmg+wtday+groupsize+cephwid+(1|colonyname)+(1|batchid),data=wts)
 
+summary(ml0_2)
+```
 
-# and so - batch ID doesn't have an effect on the weight loss...whew.
+...and so - batch ID doesn't have an effect on the weight loss - this is good to know!
 
 #diagnostic plots for the ml0_2 :
-
+```{r,echo=TRUE}
 P0<-hist(resid(ml0_2))
+P0
 P1<-plot(resid(ml0_2))
-
+P1
 # the residual analysis looks pretty decent.
 
 # - just checking if this is caused by some data :
@@ -94,7 +107,7 @@ P1<-plot(resid(ml0_2))
 wsbt<-subset(wts,cephwid>1.9 & cephwid<2.8)
 
 ml0_2_testcephwids<-lmer(wtlossmg~b4wtmg+wtday+groupsize+cephwid+(1|colonyname)+(1|batchid),data=wsbt)
-
+summary(ml0_2)
 # --the effects still remain the same
 
 # choosing a subset of weightloss-es
@@ -127,3 +140,4 @@ pctgrwd<-numrewd/numwd
 
 # -- average weight of spiders b4 :
 mean(wts$b4wtmg,na.rm=T)
+```
