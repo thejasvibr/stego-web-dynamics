@@ -1,18 +1,20 @@
 ---
 title: "Web_stuff_March2016"
 author: "Thejasvi"
-date: "Tuesday, March 29, 2016"
+date: "Date of document initiation: Tuesday, March 29, 2016"
 output: html_document
 ---
 
-###This is a whole bunch of rough analyses+plots of social spider web construction.  
+#####You are reading a version of the report compiled on `r date()`
+
+###This is a whole bunch of  analyses+plots of social spider web construction.  
 ###Spiders were kept in 4 group sizes (1,5,10,25) and allowed to build webs on a 2x2feet wire frame. Using a custom-modified version of Angioquant, a freely available MATLAB toolbox, I extracted skeletonised forms of these webs over multiple spatial resolutions over the period of the experiment. 
 
 ###The dataset being analysed 'skeletondata,csv' has the following column headers:
 ### 1)colonyname 2)groupsize 3)Image name 4) Length of silk in grid 5) Number of junctions in grid
 ###6)Serial number of grid (arranged column-wise from top-to-bottom) 7)Overal grid dimensions (eg. 32 means a 32x32 grid) 8) day, serial number of the reading from the start of experiment
 
-#####You are reading a version of the report compiled on `r date()`
+
 
 --------------
 

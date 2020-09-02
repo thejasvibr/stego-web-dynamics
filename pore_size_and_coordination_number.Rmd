@@ -389,7 +389,27 @@ print(results_med_poresize$ANOVA.test)
 
 
 ```
+### Plotting median data
+Let's also plot the median CN and pore size data to visualise how similar/different they are 
 
+```{r plotting median data}
+med_plot<-ggplot(median_df,aes(x=day,y=median_CN,group=group_size,color=as.factor(group_size)))+stat_summary(fun.ymin = min,fun.ymax =max ,size=1.5,position=position_dodge(width=0.65))
+med_plot
+
+pd <- position_dodge(width = 0.8)
+
+
+# median pore size plot with min and max
+mgplt<- ggplot(median_df,aes(x=as.factor(day),y=median_CN, shape=as.factor(group_size), group=as.factor(group_size))) +geom_pointrange(aes(ymin=min(median_CN), ymax=max(median_CN),width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ;
+mgplt
+
+
+mgplt2<- ggplot(median_df,aes(x=as.factor(day),y=median_poresize, shape=as.factor(group_size), group=as.factor(group_size))) +geom_pointrange(aes(ymin=min(median_poresize), ymax=max(median_poresize),width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ;
+mgplt2
+
+
+
+```
 
 ```{r run_time, echo=FALSE}
 print(sprintf('This notebook was last run on: %s' ,Sys.time()))
