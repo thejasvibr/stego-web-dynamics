@@ -1,8 +1,10 @@
 ---
 title: "Web_stuff_March2016"
 author: "Thejasvi"
-date: "Date of document initiation: Tuesday, March 29, 2016"
-output: html_document
+date: 'Date of document initiation: Tuesday, March 29, 2016'
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 #####You are reading a version of the report compiled on `r date()`
@@ -54,6 +56,32 @@ ps=1;
 d<-read.csv(paste(comad,'finaldataset.csv',sep=''))
 ```
 
+### Removing some spiders from the dataset
+
+I only realised a couple of days ago that there are still some colonies which have 'extra' spiders in them. These extra spiders appear because 
+the spiders somehow managed to move between webs despite our best efforts. These colonies will now be removed from the dataset. 
+
+```{r}
+
+excess_spiders <- read.csv('excess_spiders.csv')
+colonies_to_remove <- subset(excess_spiders, excess_spiders_observed==TRUE)$colonyname
+
+
+# removes all rows in the colonynames list/vector
+remove_excess_colonies <- function(df, colonynames)
+  {
+  dfcopy <- df
+  
+  for (each in colonynames)
+  {
+    dfcopy <- subset(dfcopy, colonyname!=each)
+  
+  }
+return(dfcopy)
+}
+
+```
+
 
 ### A quick view of all the data together
 
@@ -66,8 +94,11 @@ library(ggplot2)
 
 wd<-subset(d,d$GridSize==1)
 
- q025<-function(v){return(quantile(v,0.025,na.rm=T))} # gives output of 2.75%ile
- q975<-function(v){return(quantile(v,0.975,na.rm=T))} # gives output of 97.5%iles
+# Pending any further corrections - remove the excess spider colonies (as of 2020-09-02 14:02 CET)
+wd <- remove_excess_colonies(wd, colonies_to_remove)
+
+q025<-function(v){return(quantile(v,0.025,na.rm=T))} # gives output of 2.75%ile
+q975<-function(v){return(quantile(v,0.975,na.rm=T))} # gives output of 97.5%iles
 
 #   a plot to see the numbers in metres
 # 1536 pixels== 24 inches ==> 60.96 cm--> 1536/60.96 --> 
