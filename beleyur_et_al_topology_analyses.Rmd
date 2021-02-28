@@ -89,7 +89,6 @@ for (each_sheet in sheet_names){
 
 
 
-
 ### Combining all web data into one dataframe
 
 ```{r combining data}
@@ -206,6 +205,20 @@ mgplt2
 
 
 ```
+
+
+### Mean CN and pore size of all webs on day 7 
+```{r}
+# Mean coordination number on day 7 across group sizes
+print(subset(coodnum_data,Days==7))
+
+# Mean pore size on day 7 across group sizes
+print(subset(poresize_data,Days==7))
+
+
+```
+
+
 
 #### What remains to be done:
 
@@ -443,9 +456,8 @@ mgplt
 mgplt2<- ggplot(median_df,aes(x=dayfactor,y=median_poresize, shape=as.factor(group_size), group=as.factor(group_size))) +geom_pointrange(aes(ymin=min(median_poresize), ymax=max(median_poresize),width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Median poresize') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ;
 mgplt2
 
-
-
 ```
+
 
 ### The R packages and R version required to run this analysis 
 

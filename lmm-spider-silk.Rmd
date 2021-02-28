@@ -1,0 +1,77 @@
+---
+title: "LMM analysis of spider silk investment"
+output: html_notebook
+---
+This notebook will present the results of *all* days' data. Here we will use a linear-mixed model to analyse the repeated measurements of per-capita silk investment. 
+
+```{r loadingD, echo=TRUE,include=FALSE}
+library(arm)
+library(coda)
+library(gplots)
+library(lme4)
+load('dlenth.Rdata')
+load('wd.Rdata')
+
+dlenth <- subset(dlenth, day<=7)
+get.hpdintervals <- function(x,probrange){HPDinterval(as.mcmc(x, prob=probrange))}
+
+dlenth.nona <- dlenth[!is.na(dlenth$percap),]
+
+```
+
+```{r lmmmodel1}
+model1 <- lmer(percap~groupsize+day-1+(1|colonyname), data=dlenth.nona)
+# diagnose the model fit 
+
+par(mfrow=c(1,3))
+# qqplot 
+qqnorm(resid(model1));qqline(resid(model1))
+# residuals vs group size
+boxplot(resid(model1)~groupsize, data=dlenth.nona)
+# residuals vs day 
+boxplot(resid(model1)~day, data=dlenth.nona)
+
+```
+The residuals seem to be mostly normally distributed, and evenly spread cross time and group sizes. 
+
+```{r posteriordistbn}
+model1.sim <- sim(model1, n.sim=5000)
+
+# get the fixed effects HPD and compare them across group sizes:
+fixedefs1.hpd <- apply(model1.sim@fixef,2,get.hpdintervals,probrange=0.93)
+fixedefs1.mean <- apply(model1.sim@fixef,2,mean)
+fixedefs1.all <- rbind(fixedefs1.hpd[1,],fixedefs1.mean, fixedefs1.hpd[2,])
+
+```
+
+
+```{r model2}
+# this is model1 but with group size as  factor for easier comparison
+dlenth.nona$groupsizefactor <- as.factor(dlenth.nona$groupsize)
+model2 <- lmer(percap~groupsizefactor-1+day+(1|colonyname), data=dlenth.nona)
+# diagnose the model fit 
+
+par(mfrow=c(1,3))
+# qqplot 
+qqnorm(resid(model2));qqline(resid(model2))
+# residuals vs group size
+boxplot(resid(model2)~groupsize, data=dlenth.nona)
+# residuals vs day 
+boxplot(resid(model2)~day, data=dlenth.nona)
+
+```
+```{r model2sim}
+model2.sim <- sim(model2, n.sim=5000)
+
+# calculate relative effects:
+rel.effects <- cbind(model2.sim@fixef[,2],model2.sim@fixef[,3],model2.sim@fixef[,4])/model2.sim@fixef[,1]
+
+# get the fixed effects HPD and compare them across group sizes:
+fixedefs2.hpd <- apply(model2.sim@fixef,2,get.hpdintervals,probrange=0.93)
+fixedefs2.mean <- apply(model2.sim@fixef,2,mean)
+fixedefs2.all <- rbind(fixedefs2.hpd[1,],fixedefs2.mean,fixedefs2.hpd[2,])
+
+plotCI(x=seq(1,4),y=fixedefs2.mean[1:4], ui=fixedefs2.hpd[2,1:4],li=fixedefs2.hpd[1,1:4],ylab='Estimated per-capita silk investment (a.u.)', xaxt='n', xlab='Group size')
+axis(1, at = seq(1,4), labels=c(1,5,10,25),las=1)
+```
+The 93% compatibility intervals for estimated per-capita silk investment for all group sizes show overlap. 
