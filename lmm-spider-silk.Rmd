@@ -5,170 +5,224 @@ output:
     df_print: paged
 ---
 
-This notebook will present the results of *all* days' data. Here we will use a linear-mixed model to analyse the repeated measurements of per-capita silk investment. 
+This notebook will present the results of *all* days' data. Here we will use a linear-mixed model (LMM) to analyse the repeated measurements of per-capita silk investment. This notebook will essentially re-do the analysis done in the first version of the paper with the non-parametric ```nparLD``` method. The ```nparLD``` method is a non-parametric ANOVA type method which handles longitudinal data. One of the constraints of the method is  that all 'subjects' (unit of repeated measurements) must have the same sample size, and no missing values are tolerated. This essentially meant we did not include >5 days data for the initial round. LMMs can handle repeated measurements with differences in sample size, and so we can analyse all data with this method. 
 
-```{r loadingD, echo=FALSE, results=FALSE}
+```{r loadingD, results='hide', warning=F, message=F}
 library(arm)
 library(coda)
 library(gplots)
 library(ggplot2)
 library(lme4)
-library(rstanarm)
-library(shinystan)
+#library(rstanarm)
+#library(shinystan)
 load('dlenth.Rdata')
 load('wd.Rdata')
 
 set.seed(82319)
 #dlenth <- subset(dlenth)
-get.hpdintervals <- function(x,probrange){HPDinterval(as.mcmc(x, prob=probrange))}
+get.hpdintervals <- function(x,probrange=0.93)
+{HPDinterval(as.mcmc(x, prob=probrange))}
+get.med.hpdintervals <- function(x,probrange=0.93)
+          {
+          hpd.interval<-get.hpdintervals(x,probrange)
+          med <- median(x)
+          output <- c(hpd.interval[1],med,hpd.interval[2])
+            }
 get.prob.negative <- function(x){mean(x<0)}
+get.prob.greater1 <- function(x){mean(x>1)}
+get.prob.greater.value <- function(x,value){mean(x>value)}
+get.prob.lesser.value <- function(x,value){mean(x<value)}
 dlenth.nona <- dlenth[!is.na(dlenth$percap),]
-
+dlenth.nona$sqrtpercap <- sqrt(dlenth.nona$percap)
 ```
 
 Having loaded the necessary packages and data, let's proceed to run the linear-mixed models.
 
-```{r lmm1}
-model1 <- lmer(percap~groupsize+day+(1|colonyname), data=dlenth.nona)
-# diagnose the model fit 
-frame()
-par(mfrow=c(1,3))
-# qqplot 
-qqnorm(resid(model1));qqline(resid(model1))
+## Does per-capita silk investment decrease with increasing group sizes?
+
+```{r model1a, warning=F}
+# this model mimics the structure of the non-parameteric nparLD test
+m1a.formula <- formula(sqrtpercap~groupsize+day+day*groupsize+(1|colonyname))
+model1a <-  lmer(m1a.formula, data=dlenth.nona)
+
+par(mfrow=c(2,3))
 # residuals vs group size
-boxplot(resid(model1)~groupsize, data=dlenth.nona)
+scatter.smooth(as.factor(dlenth.nona$groupsize), resid(model1a),)
 # residuals vs day 
-boxplot(resid(model1)~day, data=dlenth.nona)
+scatter.smooth(dlenth.nona$day,resid(model1a))
+# sqrt(abs(residuals))
+scatter.smooth(dlenth.nona$day, sqrt(abs(resid(model1a))))
+# sqrt resids - groupsize
+scatter.smooth(as.factor(dlenth.nona$groupsize), sqrt(abs(resid(model1a))))
+
+# qqplot model residuals
+qqnorm(resid(model1a));qqline(resid(model1a))
+# qqplot random effects
+qqnorm(ranef(model1a)$colonyname$'(Intercept)');
+qqline(ranef(model1a)$colonyname$'(Intercept)')
+
+
 ```
+The assumptions of the model are met pretty well. 
 
-The residuals seem to be mostly normally distributed, and evenly spread cross time and group sizes. 
-
-```{r posteriordistbn}
-# generate posterior distribution of the coefficients in the model 
-model1.sim <- sim(model1, n.sim=5000)
+```{r model1a.sim}
+m1a.sim <- sim(model1a, n.sim=5000)
 
 # get the fixed effects HPD and compare them across group sizes:
-fixedefs1.hpd <- apply(model1.sim@fixef,2,get.hpdintervals,probrange=0.93)
-fixedefs1.mean <- apply(model1.sim@fixef,2,mean)
-fixedefs1.all <- round(rbind(fixedefs1.hpd[1,],fixedefs1.mean, fixedefs1.hpd[2,]),2)
+fixedefs1a.hpd <- apply(m1a.sim@fixef,2,get.hpdintervals,probrange=0.93)
+fixedefs1a.mean <- apply(m1a.sim@fixef,2,mean)
+fixedefs1a.all <- round(rbind(fixedefs1a.hpd[1,],fixedefs1a.mean, fixedefs1a.hpd[2,]),2)
 
 # display the 93% compatibility interval (lower, mean, upper) for the fixed effects 
-print(fixedefs1.all)
+print(fixedefs1a.all)
+
+
 ```
 
-The results suggest that per-capita silk investment may decrease or increase slightly with group size between -5 to 1 cm/spider. Overall, the probability that per-capita silk decreases with group size is `r mean(model1.sim@fixef[,2]<0)`. The effect of time is relatively small, with a decrease of between -9 to 3 cm. The overall probability that the silk investment decreases with day is `r mean(model1.sim@fixef[,3]<0)`. 
+Model 1a with the $groupsize:day$ interaction represents what I think is the most biologically motivated model. Each groupsize may respond differently over time (eg. based on the amount of silk already available/the space occupied on the frame), as is represented by the interaction.
 
-### approach 2
+What if we convert  groupsize and time to factors?
+
+```{r m1b, warning=F}
+dlenth.nona$fact.groupsize <- as.factor(dlenth.nona$groupsize)
+
+m1b.formula <- formula(sqrtpercap~fact.groupsize+day+day*fact.groupsize+(1|colonyname))
+model1b <-  lmer(m1b.formula, data=dlenth.nona)
+
+
+par(mfrow=c(2,3))
+# residuals vs group size
+scatter.smooth(as.factor(dlenth.nona$groupsize), resid(model1b),)
+# residuals vs day 
+scatter.smooth(dlenth.nona$day,resid(model1b))
+# sqrt(abs(residuals))
+scatter.smooth(dlenth.nona$day, sqrt(abs(resid(model1b))))
+# sqrt resids - groupsize
+scatter.smooth(as.factor(dlenth.nona$groupsize), sqrt(abs(resid(model1b))))
+
+# qqplot model residuals
+qqnorm(resid(model1b));qqline(resid(model1b))
+# qqplot random effects
+qqnorm(ranef(model1b)$colonyname$'(Intercept)');
+qqline(ranef(model1b)$colonyname$'(Intercept)')
+
+
+```
+
+```{r model1b.sim}
+m1b.sim <- sim(model1b, n.sim=5000)
+
+# get the fixed effects HPD and compare them across group sizes:
+fixedefs1b.hpd <- apply(m1b.sim@fixef,2,get.hpdintervals,probrange=0.93)
+fixedefs1b.mean <- apply(m1b.sim@fixef,2,mean)
+fixedefs1b.all <- round(rbind(fixedefs1b.hpd[1,],fixedefs1b.mean, fixedefs1b.hpd[2,]),2)
+
+# display the 93% compatibility interval (lower, mean, upper) for the fixed effects 
+print(fixedefs1b.all)
+
+```
+
+Having created the models, let's now interpret the coefficients, by looking at them in the linear scale. The models were run using the $\sqrt[2]per-capita$ silk. 
+
+```{r model1-a-linear}
+# per-capita silk investment across group sizes
+m1a.sqrtpercap.1.5.10.25 <- cbind(m1a.sim@fixef[,1]+m1a.sim@fixef[,2],
+                              m1a.sim@fixef[,1]+m1a.sim@fixef[,2]*5,
+                              m1a.sim@fixef[,1]+m1a.sim@fixef[,2]*10,
+                              m1a.sim@fixef[,1]+m1a.sim@fixef[,2]*25)
+m1a.percap.1.5.10.25 <- m1a.sqrtpercap.1.5.10.25^2
+m1a.percap.median <- apply(m1a.percap.1.5.10.25, 2, median)
+m1a.percap.hpd <- apply(m1a.percap.1.5.10.25, 2, get.hpdintervals)
+m1a.percap.interval <- rbind(m1a.percap.hpd[1,],m1a.percap.median,m1a.percap.hpd[2,])
+```
+
+From the Model 1a, where groupsize is continuous, we see the per-capita silk investments are overlapping across the group-sizes. To be sure, let's also check the output from Model 1b, where groupsize is treated as a factor 
+
+
+```{r model1-b-linear}
+m1b.sqrtpercap.1.5.10.25 <- cbind(m1b.sim@fixef[,1],
+                              m1b.sim@fixef[,1]+m1b.sim@fixef[,2],
+                              m1b.sim@fixef[,1]+m1b.sim@fixef[,3],
+                              m1b.sim@fixef[,1]+m1b.sim@fixef[,4])
+m1b.percap.1.5.10.25 <- m1b.sqrtpercap.1.5.10.25^2
+m1b.percap.median <- apply(m1b.percap.1.5.10.25, 2, median)
+m1b.percap.hpd <- apply(m1b.percap.1.5.10.25, 2, get.hpdintervals)
+m1b.percap.interval <- rbind(m1b.percap.hpd[1,],m1b.percap.median,m1b.percap.hpd[2,])
+
+```
+
+To visualise the coefficients obtained from group-sizes, let us plot the median and 93% HPD ranges from both Model1a and Model1b. 
+
+```{r plot-coefs, warnings=F}
+# model1a - groupsize as continuous
+groupsizes <- c(1,5,10,25)
+frame()
+par(mfrow=c(1,2))
+plotCI(seq(1,4),y=m1a.percap.interval[2,],li=m1a.percap.interval[1,],ui=m1a.percap.interval[3,], main='Groupsize - contin.',ylab = 'Est. per-capita silk, m',, xlab='Group size', axes=F)
+axis(1, at=1:4, labels=groupsizes);axis(2, at=seq(0,2,0.5), labels=seq(0,2,0.5))
+plotCI(seq(1,4),y=m1b.percap.interval[2,],li=m1b.percap.interval[1,],ui=m1b.percap.interval[3,],main='Groupsize - factor',ylab = 'Est. per-capita silk, m', xlab='Group size', axes=F)
+axis(1, at=1:4, labels=groupsizes);axis(2, at=seq(0,2,0.5), labels=seq(0,2,0.5))
+```
+
+Let us also generate some comparitive estimates. How much fold is per-capita increased or decreased in comparison to single-spiders? 
+
+```{r fold-change}
+m1a.fold.change <- m1a.percap.1.5.10.25[,2:4]/m1a.percap.1.5.10.25[,1]
+m1b.fold.change <- m1b.percap.1.5.10.25[,2:4]/m1b.percap.1.5.10.25[,1]
+
+m1a.fold.hpd <- apply(m1a.fold.change,2,get.med.hpdintervals)
+m1b.fold.hpd <- apply(m1b.fold.change,2,get.med.hpdintervals)
+
+```
+
+Having generated the estimated per-capita silk with group size, let us now calculate a derived parameter: the relative silk investment ratio ($\frac{Group \:per-capita}{Single \:per-capita}$). If the parameter is estimated to be mostly less than one, this is evidence for a decrease in per-capita silk investment with group size.
+
+```{r fold-change-plot, warning=F}
+frame()
+par(mfrow=c(1,2))
+plotCI(seq(1,3),y=m1a.fold.hpd[2,],li=m1a.fold.hpd[1,],ui=m1a.fold.hpd[3,], main='Groupsize - contin.',ylab = 'Est. per-capita silk, m',, xlab='Group size', axes=F)
+axis(1, at=1:3, labels=groupsizes[2:4]);axis(2, at=seq(0,2,0.5), labels=seq(0,2,0.5))
+plotCI(seq(1,3),y=m1b.fold.hpd[2,],li=m1b.fold.hpd[1,],ui=m1b.fold.hpd[3,],main='Groupsize - factor',ylab = 'Est. per-capita silk, m', xlab='Group size', axes=F)
+axis(1, at=1:3, labels=groupsizes[2:4]);axis(2, at=seq(0,2,0.5), labels=seq(0,2,0.5))
+
+```
+Both models do not seem to strongly support a situation where per-capita is lower than in single spiders. Across group-sizes 5,10 and 25 the $P(\frac{group\:per-capita}{single\:per-capita}<1)=$ `r round(apply(m1a.fold.change,2,get.prob.lesser.value,1),2)` for Model 1a, and 
+$P(\frac{group\:per-capita}{single\:per-capita}<1)=$ `r round(apply(m1b.fold.change,2,get.prob.lesser.value,1),2)` for Model 1b. Both models seem to weakly suggest a situation where per-capita silk investment increase with group-sizes. As can be seen, the compatibility intervals are somewhat wide, perhaps due to the low sample-sizes, and inherent variation in the data itself. 
+
+
+
+```{r predictm1a}
+dlenth.nona$pred.m1b <- predict(model1b)
+dlenth.nona$pred.m1a <- predict(model1a)
+
+par(mfrow=c(2,2))
+# 1 spider
+ggplot(subset(dlenth.nona,groupsize==1))+geom_line(aes(x=day,y=sqrtpercap,color=as.factor(colonyname),group=colonyname))+geom_line(aes(x=day,y=pred.m1b,color=as.factor(colonyname),group=colonyname))
+# 5 spider
+ggplot(subset(dlenth.nona,groupsize==5))+geom_line(aes(x=day,y=sqrtpercap,color=as.factor(colonyname),group=colonyname))+geom_line(aes(x=day,y=pred.m1b,color=as.factor(colonyname),group=colonyname))
+# 10 spider
+ggplot(subset(dlenth.nona,groupsize==10))+geom_line(aes(x=day,y=sqrtpercap,color=as.factor(colonyname),group=colonyname))+geom_line(aes(x=day,y=pred.m1b,color=as.factor(colonyname),group=colonyname))
+# 25 spider
+ggplot(subset(dlenth.nona,groupsize==25))+geom_line(aes(x=day,y=sqrtpercap,color=as.factor(colonyname),group=colonyname))+geom_line(aes(x=day,y=pred.m1b,color=as.factor(colonyname),group=colonyname))
+
+```
+
+## How does overall silk change with group-size? 
 Let's also take an alternative approach, and estimate the per-capita silk investment across group sizes. We'll treat the group sizes as factors, and thus be able to estimate group-size specific
 
 ```{r model2, warning=FALSE}
 # this is model1 but with group size as  factor for easier comparison
 dlenth.nona$groupsizefactor <- as.factor(dlenth.nona$groupsize)
 model2 <- lmer(percap~groupsizefactor+day+(1|colonyname), data=dlenth.nona)
-# diagnose the model fit 
+# diagnose the model fit
 
 frame()
 par(mfrow=c(1,3))
-# qqplot 
+# qqplot
 qqnorm(resid(model2));qqline(resid(model2))
 # residuals vs group size
 boxplot(resid(model2)~groupsize, data=dlenth.nona)
-# residuals vs day 
+# residuals vs day
 boxplot(resid(model2)~day, data=dlenth.nona)
 
 ```
-
-
-
-
-```{r model2sim, warning=FALSE}
-model2.sim <- sim(model2, n.sim=5000)
-
-# calculate relative effects:
-#rel.effects <- cbind(model2.sim@fixef[,2],model2.sim@fixef[,3],model2.sim@fixef[,4])/model2.sim@fixef[,1]
-
-# get the fixed effects HPD and compare them across group sizes:
-fixedefs2.hpd <- apply(model2.sim@fixef,2,get.hpdintervals,probrange=0.93)
-fixedefs2.mean <- apply(model2.sim@fixef,2,mean)
-fixedefs2.all <- round(rbind(fixedefs2.hpd[1,],fixedefs2.mean,fixedefs2.hpd[2,]),2)
-
-print(fixedefs2.all)
-
-```
-The intercept estimates the per-capita silk investment of group size 1, while all other factors indicate the additional increase/decrease from group size 1. Here, we see that there may be an overall decrease in silk investment tht is actually dependent on group size. The probability that silk investment is less than that of single spiders for group sizes 5,10,25 are: `r round(apply(model2.sim@fixef,2,get.prob.negative)[2:4],2)`.
-
-
-```{r model3}
-model3 <- lmer(percap ~ groupsize + day + (day|colonyname), data=dlenth.nona)
-
-frame()
-par(mfrow=c(1,3))
-# qqplot 
-qqnorm(resid(model3));qqline(resid(model3))
-# residuals vs group size
-boxplot(resid(model3)~groupsize, data=dlenth.nona)
-# residuals vs day 
-boxplot(resid(model3)~day, data=dlenth.nona)
-```
-
-
-### Comparing the raw data and predictions 
-
-```{r predictmodel1}
-model1.fixefs.sim <- fixef(model1.sim)
-pred.df <- as.data.frame(dlenth.nona)
-
-pred.df$preds.fixef <- mean(model1.fixefs.sim[1,1]) + pred.df$groupsize*mean(model1.fixefs.sim[1,2])+pred.df$day*mean(model1.fixefs.sim[1,3])
-
-#color=as.factor(colonyname),group=as.factor(colonyname)scale_x_discrete(breaks=c(1:9),labels=c(1:9))
-dg2<-ggplot(subset(pred.df,groupsize==10))+geom_line(aes(x=day,y=preds.fixef,color=as.factor(groupsize),group=as.factor(groupsize)))+ylab('')+xlab('Days')+geom_point(aes(x=day,y=percap,position='jitter',color=as.factor(groupsize)))
-dg2
-```
-
-
-## with Rstand
-```{r rstandmodel}
-model4 <- stan_glmer(percap~groupsize+day+I(day^2)+(day|colonyname), data=dlenth.nona)
-
-preds.model4 <- posterior_predict(model4, re.form=~(day|colonyname))
-mean.post.pred <- apply(preds.model4,2,mean)
-preds4 <- cbind(dlenth.nona,mean.post.pred)
-colnames(preds4)[ncol(preds4)] <- 'onepred'
-preds410 <- subset(preds4, groupsize==5)
-```
-
-```{r plotpreds}
-
-raw.and.pred1 <- ggplot(subset(preds4,groupsize==25)) + geom_line(aes(x=day,y=onepred,color=as.factor(colonyname),group=as.factor(colonyname)),lwd=1.5,alpha=0.8)+ylab('')+xlab('Days')+geom_point(aes(x=day,y=percap,color=as.factor(colonyname)))+geom_line(aes(x=day,y=percap,color=as.factor(colonyname),group=as.factor(colonyname)),)
-raw.and.pred1
-
-raw.and.pred5 <- ggplot(subset(preds4,groupsize==5)) + geom_line(aes(x=day,y=onepred,color=as.factor(groupsize),group=as.factor(colonyname)))+ylab('')+xlab('Days')+geom_point(aes(x=day,y=onepred,color=as.factor(groupsize)))
-raw.and.pred5
-
-```
-The predictions are actually quite crap....guh.
-
-
-```{r wholewebdata}
-wd$groupsizefactor <- as.factor(wd$groupsize)
-silkmodel1 <- lmer(Lengthm~groupsizefactor+day+I(day^2)+(day|colonyname), data=wd)
-silkmodel1sim <- sim(silkmodel1, n.sim=2000)
-fix.silkmodel1 <- fixef(silkmodel1sim)
-relative.coefs <- fix.silkmodel1[,1]+fix.silkmodel1[,2:4]/fix.silkmodel1[,1]
-relative.coefs.hpd <- apply(relative.coefs,2,get.hpdintervals,probrange=0.93)
-silkmodel1.hpd.coefs <- apply(fixef(silkmodel1sim),2,get.hpdintervals,probrange=0.93)
-
-par(mfrow=c(1,3))
-# qqplot 
-qqnorm(resid(silkmodel1));qqline(resid(silkmodel1))
-# residuals vs group size
-boxplot(resid(silkmodel1)~groupsize, data=wd)
-# residuals vs day 
-boxplot(resid(silkmodel1)~day, data=wd)
-
-# predict
-wd$preds <- predict(silkmodel1)
-ggplot(wd)+geom_line(aes(x=day, y=preds, color=as.factor(groupsize),group=as.factor(colonyname)),lwd=1.25,alpha=0.8)+geom_point(aes(x=day, y=Lengthm, color=as.factor(groupsize),group=as.factor(groupsize)))+geom_line(aes(x=day, y=Lengthm, color=as.factor(groupsize),group=as.factor(colonyname)))
-```
-
-
