@@ -332,8 +332,15 @@ axis(1, at=1:3, labels=gpsizes);axis(2, at=c(1,2,5,10,25,50,100,200), labels=c(1
 
 ```
 
-Here we see, that the spiders living in groups will generally gain an advantage in the total amount of silk on the web. Both statistical models seem to suggest somewhat different advantages quantitatively, though qualitatively they do show a clear >1 relative advantage in silk investment with reference to single spiders on day 1 itself. The relative silk investment is $\frac{Group\:silk(day1)}{Single\:silk(day1)}$ and calculated from the predictions of the fixed effects of the linear mixed model. The wide compatibility intervals are possibly a reflection of the generally low sample sizes and the inherent variation in the data itself. 
+Here we see, that the spiders living in groups will generally gain an advantage in the total amount of silk on the web already on day 1. Both statistical models seem to suggest somewhat different advantages quantitatively, though qualitatively they do show a clear  relative advantage of at least 2X even in group-size of 5 spiders in silk investment with reference to single spiders on day 1 itself. The relative silk investment is $\frac{Group\:silk(day1)}{Single\:silk(day1)}$ and calculated from the predictions of the fixed effects of the linear mixed model. The wide compatibility intervals are possibly a reflection of the generally low sample sizes and the inherent variation in the data itself. 
 
 It is important to remember these estimates are likely to be indicative, and perhaps not be taken too literally. The linear mixed model is a phenomological model with no explicit behavioural mechanisms in place, and provides us a rough estimate of the web dynamics. A more reliable estimate of relative silk investment in groups could be obtained by parametrising a detailed mechanistically based model. 
 
 
+## Session Info 
+
+This information has a lot of the information to replicate the computational setup required to replicate the results in this analysis. 
+
+```{r workenv}
+sessionInfo()
+```

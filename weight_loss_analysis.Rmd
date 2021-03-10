@@ -247,3 +247,14 @@ sample_size = length(wts$b4wt) - length(sum(is.na(wts$b4wt)))
 sprintf('Mean cephalothorax width +/- sd: %f +/- %f mg, N=%d', mean_startwt*1000, std_startwt*1000, sample_size)
 
 ```
+
+## Working environment 
+This information has a lot of the information to replicate the computational setup required to replicate the results in this analysis. 
+
+```{r workenv}
+print(sessionInfo())
+
+
+```
+
+
