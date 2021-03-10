@@ -1,15 +1,28 @@
 ---
 title: "Weight loss analysis for *The web architecture, dynamics, and silk investment in the social spider, Stegodyphus sarasinorum*"
-author: "Thejasvi"
+author: "Thejasvi Beleyur"
 output:
   html_document: default
 ---
 
 *This is one of three Rmd files accompanying the manuscript. The other files are called 'beleyur_et_al_silk_analyses.Rmd' (analyses the silk length on the web and the per-capita silk investment.') and 'beleyur_et_al_topology_analyses.Rmd' (analyses the coordination number and pore size data)*
 
-This notebook analyses the weight loss of individuals across the experiment to explore how individuals lost weight as a result of dessication + silk investment with group size.
+This notebook analyses the weight loss of individuals across the experiment to explore how individuals lost weight as a result of dessication + silk investment with group size. Here, the outcome variable is the weight loss and the predictor variables used will be:
+1. weighing day (#days after experiment start)
+1. body condition ($\frac{starting\:body\:weight}{cephalothorax\:width}$)
+1. group-size
 
-```{r, echo=TRUE}
+Colony name will also be used as a random effect, to account for colony-specific differences in silk-investment and dessication of spiders. 
+
+In general, the approach used here is to inspect model outputs from the default frequentist output using the  ```lmer``` function, followed by Bayesian parameter estimation using non-informative priors with the ```sim``` function. 
+
+```{r, loading, results='hide', warning=F, message=F}
+library(arm)
+library(coda)
+library(dplyr)
+library(gplots)
+library(lme4)
+set.seed(82319)
 wtadrs<-'../../analysis input-data/finalwtsnsizes.csv' # address of the weights and sizes csvfile
 wts_raw<-read.csv(wtadrs)
 
@@ -50,85 +63,156 @@ pstagemiss<-mssng/rws
 plot(wts$cephwid,wts$wtloss*1000,pch=20,col='red')
 cor.test(wts$cephwid,wts$wtloss,method='spearman')
 
+# generate body condition 
+wts$body.cond <- wts$b4wtmg/wts$cephwid
+
+wts$fact.gsize <- as.factor(wts$groupsize)
+# standardise cephalothorax width
+wts$std.cephwid <- (mean(wts$cephwid,na.rm=T)-wts$cephwid)/sd(wts$cephwid, na.rm=T)
+wts$std.b4wtmg <- (mean(wts$b4wtmg,na.rm=T)-wts$b4wtmg)/sd(wts$b4wtmg, na.rm=T)
+wts$std.wtlossmg <- (mean(wts$wtlossmg,na.rm=T)-wts$wtlossmg)/sd(wts$wtlossmg, na.rm=T)
+wts$std.body.cond <- (mean(wts$body.cond,na.rm=T)-wts$body.cond)/sd(wts$body.cond, na.rm=T)
+
+
+
+#dlenth <- subset(dlenth)
+get.hpdintervals <- function(x,probrange=0.93)
+{HPDinterval(as.mcmc(x),prob=probrange)}
+get.med.hpdintervals <- function(x,probrange=0.93)
+          {
+          hpd.interval<-get.hpdintervals(x,probrange)
+          med <- median(x)
+          output <- c(hpd.interval[1],med,hpd.interval[2])
+}
+get.prob.lesser.value <- function(x,value){mean(x<value)}
+
+wts.nona <- wts[complete.cases(select(wts,b4wtmg,wtday,fact.gsize,cephwid,std.cephwid)),]
 ```
 
 Now, let's build the models.
 
-```{r,echo=TRUE}
-library(lme4)
+```{r,echo=TRUE,warning=F}
 
 # both of these results suggest that there's an influence of previous weight, and size on silk investment
-# maybe it's best to do some kind of mixed model to figure this out :
+# maybe it's best to do some kind of linear model first to figure this out :
 
-M0<-lm(wtlossmg~b4wtmg+wtday+groupsize+cephwid,data=wts)
+M0<-lm(wtlossmg~b4wtmg+wtday+fact.gsize+std.cephwid,data=wts.nona,
+                  na.action="na.exclude")
+res.M0 <- residuals(M0)
 summary(M0)
-```
-M0 suggests that groupsize makes a difference - but this is a very simple model 
+frame()
+par(mfrow=c(3,3))
+plot(M0)
+scatter.smooth(wts.nona$wtday,res.M0)
+scatter.smooth(wts.nona$cephwid,res.M0)
+boxplot(res.M0~as.factor(wts.nona$colonyname))
+boxplot(res.M0~wts.nona$fact.gsize)
 
-```{r, echo=TRUE}
-ml0<-lmer(wtlossmg~b4wtmg+wtday+groupsize+cephwid+(1|colonyname),data=wts)
+
+```
+
+The residual inspection seems to indicate an okay fit, with 2 exceptions : colony-level variation and a non-linear pattern in the day factor. However, this non-linear pattern may also be affected by the fact that different colonies were sampled after different number of days. So let's just move straight to the linear mixed model now. 
+
+
+
+```{r, echo=TRUE,,warning=F}
+ml0<-lmer(std.wtlossmg~std.body.cond+wtday+fact.gsize+(1|colonyname),data=wts.nona, na.action="na.exclude")
 summary(ml0)
-#I want to check if 'spider ID' itself has an effect on wt loss !!! 
-# now I've to created a combination of two columns to assign each spider a completely unique id 
-# across the experiment.
-wts$uniqid<-paste(wts$colonyname,wts$ID,sep='')
 
-ml1<-lmer(wtlossmg~b4wtmg+wtday+groupsize+cephwid+(1|colonyname)+(1|uniqid),data=wts)
-summary(ml1)
+frame()
+par(mfrow=c(3,3))
+# residuals vs group size
+scatter.smooth(as.factor(wts.nona$groupsize), resid(ml0))
+# residuals vs day 
+scatter.smooth(wts.nona$wtday,resid(ml0))
+# sqrt(abs(residuals))
+scatter.smooth(wts.nona$wtday, sqrt(abs(resid(ml0))))
+# sqrt resids - groupsize
+scatter.smooth(as.factor(wts.nona$groupsize), sqrt(abs(resid(ml0))))
+# residuals vs body condition
+scatter.smooth(wts.nona$std.body.cond,resid(ml0));abline(0,0)
+# residuals vs colonyname 
+boxplot(resid(ml0)~as.factor(wts.nona$colonyname));abline(0,0)
+# residuals vs b4wt
+scatter.smooth(resid(ml0)~wts.nona$std.b4wtmg);abline(0,0)
+# qqplot model residuals
+qqnorm(resid(ml0));qqline(resid(ml0))
+# qqplot random effects
+qqnorm(ranef(ml0)$colonyname$'(Intercept)');
+qqline(ranef(ml0)$colonyname$'(Intercept)')
+
 ```
 
-This shows that there's no effect of colonyname as such  on the amount of weight loss, but rather that smaller sized spiders tend  to invest more silk, and being in a good condition leads to more silk investment. There probably isn't enough sample size to actually estimate the variation caused by individuals - and so this analysis is inconclusive. 
+The residual inspection here shows a much better fit. The weird bump on day 8 in residuals is gone, this must be because of colony-level variation. It is important to note that cephalothorax width has been standardised here. This means an increase of one std. in cephwidth will have a corresponding change in weightloss in mg. 
 
-Let's test for the effect of batch - this might affect the fact that
-# different batches were run at different points of time.
+
+```{r ml0.sim, warning=F}
+
+ml0.sim <- sim(ml0, n.sim=5000)
+# extract th 93% compat. interval of all coefficients
+ml0.hpd.coefs <- apply(ml0.sim@fixef, 2, get.med.hpdintervals)
+print(ml0.hpd.coefs)
+
+gpsize.coefs <- ml0.sim@fixef[,1]+ml0.sim@fixef[,4:6]
+gpsize.hpd.coefs <- apply(gpsize.coefs, 2, get.med.hpdintervals)
+print(gpsize.hpd.coefs)
+
+gsize <- seq(4,6)
+non.gsize <- c(2,3)
+frame()
+par(mfrow=c(1,2))
+plotCI(seq(1,2),y=ml0.hpd.coefs[2,non.gsize],li=ml0.hpd.coefs[1,non.gsize],ui=ml0.hpd.coefs[3,non.gsize], main='Fixed effects',ylab = 'Coefficients', xlab=' ',axes=F,las=2,ylim=c(-1,1))
+axis(1, at=1:2, labels=colnames(ml0.hpd.coefs)[non.gsize],las=2);axis(2, at=seq(-4,4,), labels=seq(-4,4,))
+plotCI(seq(1,3),y=gpsize.hpd.coefs[2,],li=gpsize.hpd.coefs[1,],ui=gpsize.hpd.coefs[3,], main='Fixed effects',ylab = 'Coefficients', xlab=' ',axes=F,las=2,ylim=c(-4,4))
+axis(1, at=1:3, labels=colnames(ml0.hpd.coefs)[gsize],las=2);axis(2, at=seq(-4,4,), labels=seq(-4,4,))
+
+```
+
+The model informs us that individuals with better body-condition tend to lose more weight than those with lower body condition. Day of weighing seems to have an overall positive effect on weight loss, which makes sense. The $P(wtday<0)=$ `r round(mean(ml0.sim@fixef[,3]<0),2)`. Remember that the outcome is a standardised variable, and the coefficients are to be interpreted as one day increase in time corresponds to X sd increase in weight loss. So, for between 6-10 days of time, this corresponds to a median of `r round(ml0.hpd.coefs[2,3]*c(6),1)`-`r round(ml0.hpd.coefs[2,3]*c(10),1)` increase in weight loss std. deviations. This comparison between time and body condition tells us that body condition is a much stronger effect than time. 
+
+In general, there is a (weakly) indicative trend that larger groupsizes lead to lower weight loss, though its is somewhat weak. We see the $P(Coef.(group\:sizes)<0)=$ `r round(apply(ml0.sim@fixef[,4:6],2,get.prob.lesser.value,0),2)`. The decrease in weight loss with increasing group size is most strongly seen in group-size 25 of course, where the $P(Coef.(group\:size))<0$ is ~ `r round(get.prob.lesser.value(ml0.sim@fixef[,6],0),1)`. For instance, spiders in group-size 25 are expected to show a ~ median of `r round(ml0.hpd.coefs[2,6],1)` std.deviations decrease in weight loss, while other group sizes show somewhat lower effects. If we would like to compare the effects of group size and body condition on weight loss, we  need to compare the coefficients:
+
+```{r groupsize.vs.bodycond}
+
+p.gsize.greater.bodycond <- c(0,0,0)
+for (i in seq(1,3)){
+  p.gsize.greater.bodycond[i]<-mean(gpsize.coefs[,i]>ml0.sim@fixef[,2])}
+
+
+print(round(p.gsize.greater.bodycond,1))
+
+```
+Here we see that in general, the effect of body condition is greater than that of group-size only ~30% of the time. What about the relative coefficients? 
+
+```{r rel.groupsize.bodycond}
+rel.effects.gsize <- abs(gpsize.coefs)/abs(ml0.sim@fixef[,2])
+print(apply(rel.effects.gsize,2,get.med.hpdintervals,probrange=0.5))
+# calculate prob>1 
+p.gsize.greater.bodycond <- apply(rel.effects.gsize,2,function(x){mean(x>1)})
+print(round(p.gsize.greater.bodycond,2))
+```
+The contribution of group-size is in general more than body-condition : $P(\frac{|Coef(groupsize)|}{|Coef(body\:condition)|}>1=$ `r round(p.gsize.greater.bodycond,1)` for groupsizes 5,10,25.
+
+
+
+Let's test for the effect of batch - this tries to account for weather conditions (sun/rain) that may have affected dessication indirectly by affecting the temperature of the experimental room. 
+
 ```{r, echo=TRUE}
 lastchar<-function(V){substr(V,nchar(V),nchar(V))}
+# different batches were run at different points of time.
+wts.nona$batchid<-as.factor(lastchar(as.character(wts.nona$colonyname)))
 
-wts$batchid<-lastchar(as.character(wts$colonyname))
-
-ml0_2<-lmer(wtlossmg~b4wtmg+wtday+groupsize+cephwid+(1|colonyname)+(1|batchid),data=wts)
-
-summary(ml0_2)
+ml0b<-lmer(std.wtlossmg~std.body.cond+wtday+fact.gsize+(1|batchid)+(1|colonyname)-1,data=wts.nona, na.action="na.exclude")
+summary(ml0b)
 ```
 
-...and so - batch ID doesn't have an effect on the weight loss - this is good to know!
+...and so - batch ID doesn't seem to have an effect on the weight loss.
 
-#diagnostic plots for the ml0_2 :
+
+
+### Other descriptive data
+
 ```{r,echo=TRUE}
-P0<-hist(resid(ml0_2))
-P0
-P1<-plot(resid(ml0_2))
-P1
-# the residual analysis looks pretty decent.
-
-# - just checking if this is caused by some data :
-
-#choosing a subset of cephwidths
-wsbt<-subset(wts,cephwid>1.9 & cephwid<2.8)
-
-ml0_2_testcephwids<-lmer(wtlossmg~b4wtmg+wtday+groupsize+cephwid+(1|colonyname)+(1|batchid),data=wsbt)
-summary(ml0_2)
-# --the effects still remain the same
-
-# choosing a subset of weightloss-es
-
-wtlsbt<-subset(wts,wtlossmg<30 & wtlossmg>1)
-
-ml0_2_testwts<-lmer(wtlossmg~b4wtmg+wtday+groupsize+cephwid+(1|colonyname)+(1|batchid),data=wtlsbt)
-plot(resid(ml0_2_testwts))
-
-# is it the effect of the error in rouding off of the cephwid?
-
-wtscephtst<-wts;
-wtscephtst$cephwidrnd<-round(wtscephtst$cephwid,1)
-ml0_2_testceph<-lmer(wtlossmg~b4wtmg+wtday+groupsize+cephwidrnd+(1|colonyname)+(1|batchid),data=wtscephtst)
-
-# the effect of mimicking measurement error still remain the same 
-wts$bodycondn<-wts$b4wtmg/wts$cephwid
-
-ml0_2_bodycndn<-lmer(wtlossmg~bodycondn+wtday+groupsize+(1|colonyname)+(1|batchid),data=wts)
-
-# anyway you can still calculated the %age of spiders that were re-weighed:
 
 # number of spiders weighed
 numwd<-sum(is.na(wts$b4wt)==F)
@@ -143,7 +227,6 @@ mean(wts$b4wtmg,na.rm=T)
 ```
 
 
-### Other descriptive data
 
 #### Cephalothorax widths
 

@@ -21,7 +21,7 @@ load('wd.Rdata')
 set.seed(82319)
 #dlenth <- subset(dlenth)
 get.hpdintervals <- function(x,probrange=0.93)
-{HPDinterval(as.mcmc(x, prob=probrange))}
+{HPDinterval(as.mcmc(x),prob=probrange)}
 get.med.hpdintervals <- function(x,probrange=0.93)
           {
           hpd.interval<-get.hpdintervals(x,probrange)
@@ -34,6 +34,9 @@ get.prob.greater.value <- function(x,value){mean(x>value)}
 get.prob.lesser.value <- function(x,value){mean(x<value)}
 dlenth.nona <- dlenth[!is.na(dlenth$percap),]
 dlenth.nona$sqrtpercap <- sqrt(dlenth.nona$percap)
+
+# write wd to a csv file 
+write.csv(wd, 'wd.csv')
 ```
 
 Having loaded the necessary packages and data, let's proceed to run the linear-mixed models.
@@ -212,17 +215,125 @@ Let's also take an alternative approach, and estimate the per-capita silk invest
 
 ```{r model2, warning=FALSE}
 # this is model1 but with group size as  factor for easier comparison
-dlenth.nona$groupsizefactor <- as.factor(dlenth.nona$groupsize)
-model2 <- lmer(percap~groupsizefactor+day+(1|colonyname), data=dlenth.nona)
+wd.nozero <- subset(wd, Lengthm>0)
+wd.nozero$sqrtm <- sqrt(wd.nozero$Lengthm+10^-5)
+wd.nozero$logm <- log(wd.nozero$Lengthm+10^-3)
+model2a <- lmer(logm~day+I(day^2)+groupsize+groupsize*day+(1|colonyname), data=wd.nozero)
 # diagnose the model fit
 
 frame()
-par(mfrow=c(1,3))
-# qqplot
-qqnorm(resid(model2));qqline(resid(model2))
+par(mfrow=c(2,3))
 # residuals vs group size
-boxplot(resid(model2)~groupsize, data=dlenth.nona)
-# residuals vs day
-boxplot(resid(model2)~day, data=dlenth.nona)
+scatter.smooth(as.factor(wd.nozero$groupsize), resid(model2a),)
+# residuals vs day 
+scatter.smooth(wd.nozero$day,resid(model2a))
+# sqrt(abs(residuals))
+scatter.smooth(wd.nozero$day, sqrt(abs(resid(model2a))))
+# sqrt resids - groupsize
+scatter.smooth(as.factor(wd.nozero$groupsize), sqrt(abs(resid(model2a))))
+
+# qqplot model residuals
+qqnorm(resid(model2a));qqline(resid(model2a))
+# qqplot random effects
+qqnorm(ranef(model2a)$colonyname$'(Intercept)');
+qqline(ranef(model2a)$colonyname$'(Intercept)')
+
 
 ```
+
+
+
+```{r model2b, warning=FALSE}
+# this is model1 but with group size as  factor for easier comparison
+wd.nozero$fact.groupsize <- as.factor(wd.nozero$groupsize)
+model2b <- lmer(logm~day+I(day^2)+fact.groupsize+fact.groupsize*day+(1|colonyname), data=wd.nozero)
+# diagnose the model fits
+
+frame()
+par(mfrow=c(2,3))
+# residuals vs group size
+scatter.smooth(as.factor(wd.nozero$groupsize), resid(model2b),)
+# residuals vs day 
+scatter.smooth(wd.nozero$day,resid(model2b))
+# sqrt(abs(residuals))
+scatter.smooth(wd.nozero$day, sqrt(abs(resid(model2b))))
+# sqrt resids - groupsize
+scatter.smooth(as.factor(wd.nozero$groupsize), sqrt(abs(resid(model2b))))
+
+# qqplot model residuals
+qqnorm(resid(model2b));qqline(resid(model2b))
+# qqplot random effects
+qqnorm(ranef(model2b)$colonyname$'(Intercept)');
+qqline(ranef(model2b)$colonyname$'(Intercept)')
+
+
+```
+
+The residuals seem to mostly fit model assumptions. Group size 25 seems to have higher residuals than other groups, but these residuals are however still mostly centred around zero. 
+
+```{r model2.sims}
+nruns <- 10^4
+m2a.sim <- sim(model2a, n.sim=nruns)
+m2b.sim <- sim(model2b, n.sim=nruns)
+
+m2a.fixefs.hpd <- apply(m2a.sim@fixef,2,get.hpdintervals)
+m2b.fixefs.hpd <- apply(m2b.sim@fixef,2,get.hpdintervals)
+print(m2a.fixefs.hpd)
+print(m2b.fixefs.hpd)
+```
+
+```{r model2.relsilkinvest}
+# the total relative silk investment w.ref to single spiders on day 1
+
+rel.coefs.m2a <- exp(cbind(m2a.sim@fixef[,1]+m2a.sim@fixef[,2]+m2a.sim@fixef[,3]+m2a.sim@fixef[,4]+m2a.sim@fixef[,5],
+                       m2a.sim@fixef[,1]+m2a.sim@fixef[,2]+m2a.sim@fixef[,3]+(m2a.sim@fixef[,4]+m2a.sim@fixef[,5])*5,
+                       m2a.sim@fixef[,1]+m2a.sim@fixef[,2]+m2a.sim@fixef[,3]+(m2a.sim@fixef[,4]+m2a.sim@fixef[,5])*10,
+                       m2a.sim@fixef[,1]+m2a.sim@fixef[,2]+m2a.sim@fixef[,3]+(m2a.sim@fixef[,4]+m2a.sim@fixef[,5])*25))
+
+rel.totalsilk.m2a <- rel.coefs.m2a[,2:4]/rel.coefs.m2a[,1]
+
+fefs.m2b <- m2b.sim@fixef
+rel.coefs.m2b.num <- cbind(apply(fefs.m2b[,1:3],1,sum),
+                       apply(fefs.m2b[,c(1:4,7)],1,sum),
+                       apply(fefs.m2b[,c(1:3,5,8)],1,sum),
+                       apply(fefs.m2b[,c(1:3,6,9)],1,sum))
+rel.coefs.m2b.num <- exp(rel.coefs.m2b.num)
+
+rel.totalsilk.m2b <- matrix(data=NA,nrow=nruns,ncol=3)
+rel.totalsilk.m2b[,1] <- rel.coefs.m2b.num[,2]/rel.coefs.m2b.num[,1]
+rel.totalsilk.m2b[,2] <- rel.coefs.m2b.num[,3]/rel.coefs.m2b.num[,1]
+rel.totalsilk.m2b[,3] <- rel.coefs.m2b.num[,4]/rel.coefs.m2b.num[,1]
+
+
+reltotal.m2a.hpd <- apply(rel.totalsilk.m2a,2,get.med.hpdintervals)
+reltotal.m2b.hpd <- apply(rel.totalsilk.m2b,2,get.med.hpdintervals)
+
+print(reltotal.m2a.hpd)
+print(reltotal.m2b.hpd)
+```
+
+```{r plotting.relsilk}
+gpsizes <- c(5,10,25)
+frame()
+par(mfrow=c(1,2))
+plotCI(seq(1,3),y=reltotal.m2a.hpd[2,],
+                li=reltotal.m2a.hpd[1,],
+                ui=reltotal.m2a.hpd[3,],
+                main='Groupsize - contin.',
+               ylab = 'Relative web-silk on day1, re. single, 93% CI', xlab='Group size',log='y', axes=F,ylim=c(1,200))
+
+axis(1, at=1:3, labels=gpsizes);axis(2, at=c(1,2,5,10,25,50,100,200), labels=c(1,2,5,10,25,50,100,200))
+plotCI(seq(1,3),y=reltotal.m2b.hpd[2,],
+                li=reltotal.m2b.hpd[1,],
+                ui=reltotal.m2b.hpd[3,],
+                main='Groupsize - factor.',
+               ylab = 'Relative web-silk on day1, re. single, 93% CI', xlab='Group size',log='y',axes=F,ylim=c(1,200))
+axis(1, at=1:3, labels=gpsizes);axis(2, at=c(1,2,5,10,25,50,100,200), labels=c(1,2,5,10,25,50,100,200))
+
+```
+
+Here we see, that the spiders living in groups will generally gain an advantage in the total amount of silk on the web. Both statistical models seem to suggest somewhat different advantages quantitatively, though qualitatively they do show a clear >1 relative advantage in silk investment with reference to single spiders on day 1 itself. The relative silk investment is $\frac{Group\:silk(day1)}{Single\:silk(day1)}$ and calculated from the predictions of the fixed effects of the linear mixed model. The wide compatibility intervals are possibly a reflection of the generally low sample sizes and the inherent variation in the data itself. 
+
+It is important to remember these estimates are likely to be indicative, and perhaps not be taken too literally. The linear mixed model is a phenomological model with no explicit behavioural mechanisms in place, and provides us a rough estimate of the web dynamics. A more reliable estimate of relative silk investment in groups could be obtained by parametrising a detailed mechanistically based model. 
+
+
