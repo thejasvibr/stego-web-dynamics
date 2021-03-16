@@ -356,8 +356,8 @@ pre code {
 
 
 <p><em>This is one of three Rmd files accompanying the manuscript. The other files are ‘beleyur_et_al_topology_analyses.Rmd’ (analyses the coordination number and pore size data), ‘weight_loss_analysis.Rmd’ (analyses weight loss of individuals across colonies over the experiment)</em></p>
-<div id="you-are-reading-a-version-of-the-report-compiled-on-wed-mar-10-170502-2021" class="section level5">
-<h5>You are reading a version of the report compiled on Wed Mar 10 17:05:02 2021</h5>
+<div id="you-are-reading-a-version-of-the-report-compiled-on-tue-mar-16-193747-2021" class="section level5">
+<h5>You are reading a version of the report compiled on Tue Mar 16 19:37:47 2021</h5>
 <p>Spiders were kept in 4 group sizes (1,5,10,25) and allowed to build webs on a 2x2feet wire frame. Using a custom-modified version of Angioquant, a freely available MATLAB toolbox, I extracted skeletonised forms of these webs over multiple spatial resolutions over the period of the experiment.</p>
 </div>
 <div id="the-dataset-being-analysed-skeletondatacsv-has-the-following-column-headers" class="section level3">
@@ -412,6 +412,59 @@ source('remove_colonies.R')</code></pre>
 <div id="there-seems-to-be-a-decent-amount-of-overlap-in-silk-investment-across-group-sizes---but-the-25-spider-group-seems-to-be-quite-distinct.-this-points-to-quite-a-bit-of-colony-level-variation." class="section level4">
 <h4>There seems to be a decent amount of overlap in silk investment across group sizes - but the 25 spider group seems to be quite distinct. This points to quite a bit of colony level variation.</h4>
 </div>
+</div>
+<div id="experiment-sample-sizes" class="section level3">
+<h3>Experiment sample sizes</h3>
+<p>How many colonies of each group size were there, and the range of experiment duration.</p>
+<pre class="r"><code>t &lt;- table(wd$colonyname)
+colonynames &lt;- dimnames(t)[[1]]
+groupsizes &lt;- vector(length=length(colonynames))
+i = 1
+for (each in colonynames)
+{groupsizes[i] = stri_sub(each,from=1,to=-2);
+  i = i+1}
+
+# number of colonies per group-size
+print(table(groupsizes))</code></pre>
+<pre><code>## groupsizes
+##  1 10 25  5 
+##  6  6  4  3</code></pre>
+<pre class="r"><code># range of days for each group-size
+print(t)</code></pre>
+<pre><code>## 
+## 10B 10C 10D 10E 10F 10G  1A  1B  1C  1D  1F  1G 25A 25D 25F 25G  5E  5F  5H 
+##   8  10   6   9   9   7   7   8  10   9   7   7   7   9   8   7   9   9   6</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th>Groupsize</th>
+<th>Ncolonies</th>
+<th>Experiment range (days)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>5</td>
+<td>7-10</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td>3</td>
+<td>6-9</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td>6</td>
+<td>6-10</td>
+</tr>
+<tr class="even">
+<td>25</td>
+<td>4</td>
+<td>7-9</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="plot-2-how-does-the-amount-of-silk-scale-with-groupsize-across-time" class="section level3">
 <h3><em>Plot 2</em>: How does the amount of silk scale with groupsize across time ?</h3>
@@ -520,6 +573,7 @@ table(wd1$groupsize)</code></pre>
 ## other attached packages:
 ## [1] reshape2_1.4.4    qpcR_1.4-1        Matrix_1.2-18     robustbase_0.93-7
 ## [5] rgl_0.105.22      minpack.lm_1.2-1  MASS_7.3-51.6     ggplot2_3.3.3    
+## [9] stringi_1.5.3    
 ## 
 ## loaded via a namespace (and not attached):
 ##  [1] tidyselect_1.1.0        xfun_0.21               bslib_0.2.4            
@@ -531,12 +585,12 @@ table(wd1$groupsize)</code></pre>
 ## [19] glue_1.4.2              withr_2.4.1             DBI_1.1.1              
 ## [22] plyr_1.8.6              lifecycle_1.0.0         stringr_1.4.0          
 ## [25] munsell_0.5.0           gtable_0.3.0            htmlwidgets_1.5.3      
-## [28] evaluate_0.14           labeling_0.4.2          knitr_1.31             
-## [31] fastmap_1.1.0           httpuv_1.5.5            crosstalk_1.1.1        
-## [34] DEoptimR_1.0-8          highr_0.8               Rcpp_1.0.6             
-## [37] xtable_1.8-4            scales_1.1.1            promises_1.2.0.1       
-## [40] webshot_0.5.2           jsonlite_1.7.2          mime_0.10              
-## [43] farver_2.0.3            digest_0.6.27           stringi_1.5.3          
+## [28] codetools_0.2-16        evaluate_0.14           labeling_0.4.2         
+## [31] knitr_1.31              fastmap_1.1.0           httpuv_1.5.5           
+## [34] crosstalk_1.1.1         DEoptimR_1.0-8          highr_0.8              
+## [37] Rcpp_1.0.6              xtable_1.8-4            scales_1.1.1           
+## [40] promises_1.2.0.1        webshot_0.5.2           jsonlite_1.7.2         
+## [43] mime_0.10               farver_2.0.3            digest_0.6.27          
 ## [46] dplyr_1.0.4             shiny_1.6.0             tools_4.0.1            
 ## [49] magrittr_2.0.1          sass_0.3.1              tibble_3.0.6           
 ## [52] crayon_1.4.1            pkgconfig_2.0.3         ellipsis_0.3.1         

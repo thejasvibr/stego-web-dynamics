@@ -20,6 +20,7 @@ Spiders were kept in 4 group sizes (1,5,10,25) and allowed to build webs on a 2x
 --------------
 
 ```{r, echo=FALSE,cache=TRUE}
+library(stringi)
 #dorig<-read.csv('C:/Users/Thejasvi/Google Drive/stego web/web-construction FINAL round - raw data/analysis-FINALround/analysis input-data/semifinal16thmay/skeletondata.csv')
 setwd('./')
 # also loading the multiplot function, which will be super useful as we go on:
@@ -112,7 +113,7 @@ mgwd<-merge(mnwd,sdwd); mgwd<-mgwd[order(mgwd[,1],mgwd[,2]),]
 
 #
 pd <- position_dodge(width = 0.8)
-mgwd1<-subset(mgwd,day<10)
+mgwd1<-subset(mgwd,day<=11)
 mgwd7<-subset(mgwd,day<8)
 
 
@@ -147,6 +148,39 @@ multiplot(p11mtrs,p2mtrs,cols=2)
 #####*The lines show the 95% interval of the data from the median (2.75% and 97.25%)
 
 #### There seems to be a decent amount of overlap in silk investment across group sizes - but the 25 spider group seems to be quite distinct. This points to quite a bit of colony level variation. 
+
+
+### Experiment sample sizes 
+How many colonies of each group size were there, and the range of experiment duration. 
+
+```{r sampledescription}
+
+t <- table(wd$colonyname)
+colonynames <- dimnames(t)[[1]]
+groupsizes <- vector(length=length(colonynames))
+i = 1
+for (each in colonynames)
+{groupsizes[i] = stri_sub(each,from=1,to=-2);
+  i = i+1}
+
+# number of colonies per group-size
+print(table(groupsizes))
+      
+# range of days for each group-size
+print(t)
+
+
+```
+
+
+|Groupsize  | Ncolonies  | Experiment range (days)|
+|-----------|------------|------------------------|
+|       1   |     5      | 7-10                   |
+|       5   |     3      | 6-9                    |
+|       10  |     6      | 6-10                   |
+|       25  |     4      | 7-9                    |
+
+
 
 ### *Plot `r ps`*: How does the amount of silk scale with groupsize across time ?
 
