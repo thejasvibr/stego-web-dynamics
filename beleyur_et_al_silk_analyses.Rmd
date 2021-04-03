@@ -20,7 +20,7 @@ Spiders were kept in 4 group sizes (1,5,10,25) and allowed to build webs on a 2x
 --------------
 
 ```{r, echo=FALSE,cache=TRUE}
-library(stringi)
+
 #dorig<-read.csv('C:/Users/Thejasvi/Google Drive/stego web/web-construction FINAL round - raw data/analysis-FINALround/analysis input-data/semifinal16thmay/skeletondata.csv')
 setwd('./')
 # also loading the multiplot function, which will be super useful as we go on:
@@ -117,8 +117,8 @@ mgwd1<-subset(mgwd,day<=11)
 mgwd7<-subset(mgwd,day<8)
 
 
-mgplt<- ggplot(mgwd1,aes(x=as.factor(day),y=meanL,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanL-sdL, ymax=meanL+sdL,width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ; mgplt
-ggsave('total_silk_length_all_10days.png')
+mgplt<- ggplot(mgwd1,aes(x=as.factor(day),y=meanL,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanL-sdL, ymax=meanL+sdL,width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))+theme_classic()  ; mgplt
+#ggsave('total_silk_length_all_10days.png')
 
 
 
@@ -126,12 +126,11 @@ ggsave('total_silk_length_all_10days.png')
 
 mgplt7<- ggplot(mgwd7,aes(x=as.factor(day),y=meanL,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanL-sdL, ymax=meanL+sdL,width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ; mgplt7
 
-ggsave('total_silk_length_all_7days.png')
+#ggsave('total_silk_length_all_7days.png')
 
 # make *all* data web-silk plot on request of reviewers
-mgplt.all<- ggplot(mgwd,aes(x=as.factor(day),y=meanL,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanL-sdL, ymax=meanL+sdL,width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))  ; mgplt.all
-
-ggsave('total_silk_length_alldays.png')
+mgplt.all<- ggplot(mgwd,aes(x=as.factor(day),y=meanL,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanL-sdL, ymax=meanL+sdL,width=0.9),size=1.3,position=pd) +scale_shape_manual(values=c(15,16,17,18))+ xlab('Days') + ylab('Length of silk (metres)') +geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))+theme_classic()   ; mgplt.all
+ggsave('total_silk_length_alldays.jpg', height=4.5, width=7.29,dpi=1000)
 
 
 
@@ -154,7 +153,7 @@ multiplot(p11mtrs,p2mtrs,cols=2)
 How many colonies of each group size were there, and the range of experiment duration. 
 
 ```{r sampledescription}
-
+library(stringi)
 t <- table(wd$colonyname)
 colonynames <- dimnames(t)[[1]]
 groupsizes <- vector(length=length(colonynames))
@@ -175,7 +174,7 @@ print(t)
 
 |Groupsize  | Ncolonies  | Experiment range (days)|
 |-----------|------------|------------------------|
-|       1   |     5      | 7-10                   |
+|       1   |     6      | 7-10                   |
 |       5   |     3      | 6-9                    |
 |       10  |     6      | 6-10                   |
 |       25  |     4      | 7-9                    |
@@ -281,19 +280,20 @@ pd <- position_dodge(width = 0.8)
 
 mgpc1<-subset(mgpc,day<9)
 mgpltpc<- ggplot(mgpc1,aes(x=as.factor(day),y=meanPC,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanPC-sdPC, ymax=meanPC+sdPC,shape=as.factor(mgpc1$groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Per-capita silk investment (metres)')+scale_shape_manual(values=c(15,16,17,18))+geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=20))  ; mgpltpc
-ggsave('per_capita_all_10days.png')
+#ggsave('per_capita_all_10days.png')
 
 # per-capita all days data
 
-mgpltpc.all<- ggplot(mgpc,aes(x=as.factor(day),y=meanPC,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanPC-sdPC, ymax=meanPC+sdPC,shape=as.factor(groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Per-capita silk investment (metres)')+scale_shape_manual(values=c(15,16,17,18))+geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=20))  ; mgpltpc.all
-ggsave('per_capita_all.png')
+mgpltpc.all<- ggplot(mgpc,aes(x=as.factor(day),y=meanPC,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanPC-sdPC, ymax=meanPC+sdPC,shape=as.factor(groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Per-capita silk investment (metres)')+scale_shape_manual(values=c(15,16,17,18))+geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=15))+theme_classic()  ; mgpltpc.all
+ggsave('per_capita_alldays.jpg', height=4.5, width=7.29,dpi=1000)
+
 
 
 ### figure 4 -- within 7 days
 mgpc7<-subset(mgpc,day<8)
 
 mgpltp7<- ggplot(mgpc7,aes(x=as.factor(day),y=meanPC,shape=as.factor(groupsize),group=as.factor(groupsize))) +geom_pointrange(aes(ymin=meanPC-sdPC, ymax=meanPC+sdPC,shape=as.factor(mgpc7$groupsize),width=0.9),size=1.3,position=pd) + xlab('Days') + ylab('Per-capita silk investment (metres)')+scale_shape_manual(values=c(15,16,17,18))+geom_line(lwd=1,position=pd)+labs(shape = "Group Size")+ theme(text = element_text(size=20))  ; mgpltp7
-ggsave('per_capita_all_7days.png')
+#ggsave('per_capita_all_7days.png')
 
 
 ```
